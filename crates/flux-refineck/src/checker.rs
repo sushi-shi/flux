@@ -46,6 +46,7 @@ use rustc_data_structures::{
 use rustc_hash::FxHashMap;
 use rustc_hir::{
     attrs::lang_items::LangItem,
+    def::DefKind,
     def_id::{DefId, LocalDefId},
 };
 use rustc_index::{IndexSlice, bit_set::DenseBitSet};
@@ -944,11 +945,38 @@ impl<'ck, 'genv, 'tcx, M: Mode> Checker<'ck, 'genv, 'tcx, M> {
             None => crate::rty::List::empty(),
         };
 
-        let (clauses, fn_clauses) = Clause::split_off_fn_trait_clauses(self.genv, &clauses);
+        let (clauses, mut fn_clauses) = Clause::split_off_fn_trait_clauses(self.genv, &clauses);
         infcx
             .at(span)
             .check_non_closure_clauses(&clauses, ConstrReason::Call)
             .with_span(span)?;
+
+        // Closure bounds of an impl method live on the impl, e.g. `F: FnMut(I::Item) -> B` on
+        // `impl Iterator for Map<I, F>`. `instantiate_args_for_fun_call` sees them (it walks the
+        // parents) and refines `B` with a kvar, expecting this clause to relate it to the
+        // closure's output. Without checking it here nothing bounds that kvar, fixpoint solves it
+        // to `false`, and every use of the returned value is vacuously verified. Only impls are
+        // considered: a trait parent's clauses are its supertraits (e.g. `Self: FnMut` on `Fn`),
+        // not bounds on the call's arguments.
+        if let Some(callee_def_id) = callee_def_id {
+            let parent = genv
+                .predicates_of(callee_def_id)
+                .with_span(span)?
+                .skip_binder_ref()
+                .parent;
+            if let Some(impl_id) = parent
+                && matches!(genv.def_kind(impl_id), DefKind::Impl { .. })
+            {
+                let impl_clauses = genv
+                    .predicates_of(impl_id)
+                    .with_span(span)?
+                    .predicates()
+                    .instantiate(tcx, &generic_args, &early_refine_args);
+                let (_, impl_fn_clauses) =
+                    Clause::split_off_fn_trait_clauses(self.genv, &impl_clauses);
+                fn_clauses.extend(impl_fn_clauses);
+            }
+        }
 
         for fn_trait_pred in &fn_clauses {
             self.check_fn_trait_clause(infcx, fn_trait_pred, span)?;
