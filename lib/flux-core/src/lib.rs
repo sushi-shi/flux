@@ -28,6 +28,9 @@ pub mod clone;
 pub mod slice;
 
 #[cfg(any(flux, doc))]
+pub mod str;
+
+#[cfg(any(flux, doc))]
 pub mod array;
 
 #[cfg(any(flux, doc))]
