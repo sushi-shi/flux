@@ -129,6 +129,8 @@ pub struct CompileOpts {
     #[command(flatten)]
     compilation: CompilationOptions,
     #[command(flatten)]
+    targets: Targets,
+    #[command(flatten)]
     manifest: ManifestOptions,
     #[command(flatten)]
     flux_flags: FluxFlags,
@@ -161,6 +163,7 @@ impl CompileOpts {
             workspace,
             features,
             compilation,
+            targets,
             manifest,
             fix: _,
             fix_opts,
@@ -172,6 +175,7 @@ impl CompileOpts {
         workspace.forward_args(cmd);
         features.forward_args(cmd);
         compilation.forward_args(cmd);
+        targets.forward_args(cmd);
         manifest.forward_args(cmd);
         fix_opts.forward_args(cmd);
     }
@@ -356,6 +360,68 @@ impl Features {
     }
 }
 
+#[derive(Debug, Default, clap::Args)]
+#[command(next_help_heading = "Target Selection")]
+pub struct Targets {
+    /// Check only the library target.
+    #[arg(long)]
+    lib: bool,
+    /// Check all binary targets.
+    #[arg(long)]
+    bins: bool,
+    /// Check the named binary target.
+    #[arg(long, value_name = "NAME")]
+    bin: Vec<String>,
+    /// Check all test targets.
+    #[arg(long)]
+    tests: bool,
+    /// Check the named test target.
+    #[arg(long, value_name = "NAME")]
+    test: Vec<String>,
+    /// Check all example targets.
+    #[arg(long)]
+    examples: bool,
+    /// Check the named example target.
+    #[arg(long, value_name = "NAME")]
+    example: Vec<String>,
+    /// Check all benchmark targets.
+    #[arg(long)]
+    benches: bool,
+    /// Check the named benchmark target.
+    #[arg(long, value_name = "NAME")]
+    bench: Vec<String>,
+    /// Check all targets.
+    #[arg(long)]
+    all_targets: bool,
+}
+
+impl Targets {
+    fn forward_args(&self, cmd: &mut Command) {
+        for (flag, enabled) in [
+            ("--lib", self.lib),
+            ("--bins", self.bins),
+            ("--tests", self.tests),
+            ("--examples", self.examples),
+            ("--benches", self.benches),
+            ("--all-targets", self.all_targets),
+        ] {
+            if enabled {
+                cmd.arg(flag);
+            }
+        }
+        for (flag, names) in [
+            ("--bin", &self.bin),
+            ("--test", &self.test),
+            ("--example", &self.example),
+            ("--bench", &self.bench),
+        ] {
+            for name in names {
+                cmd.args([flag, name]);
+            }
+        }
+    }
+}
+
 #[derive(Debug, clap::Args)]
 #[command(next_help_heading = "Compilation Options")]
 pub struct CompilationOptions {
@@ -394,22 +460,35 @@ pub struct ManifestOptions {
     /// Run without accessing the network
     #[arg(long)]
     offline: bool,
+    /// Require Cargo.lock to remain unchanged.
+    #[arg(long)]
+    locked: bool,
 }
 
 impl ManifestOptions {
     fn forward_args(&self, cmd: &mut Command) {
-        let ManifestOptions { manifest_path, offline } = self;
+        let ManifestOptions { manifest_path, offline, locked } = self;
         if let Some(manifest_path) = &manifest_path {
             cmd.args(["--manifest-path", manifest_path.as_str()]);
         }
         if *offline {
             cmd.arg("--offline");
         }
+        if *locked {
+            cmd.arg("--locked");
+        }
     }
 
     fn forward_to_metadata(&self, meta: &mut MetadataCommand) {
-        // TODO(nilehmann) should we pass offline to metadata?
-        let ManifestOptions { manifest_path, offline: _ } = self;
+        let ManifestOptions { manifest_path, offline, locked } = self;
+        let mut options = vec![];
+        if *offline {
+            options.push("--offline".to_owned());
+        }
+        if *locked {
+            options.push("--locked".to_owned());
+        }
+        meta.other_options(options);
         if let Some(manifest_path) = &manifest_path {
             meta.manifest_path(manifest_path);
         }
@@ -439,5 +518,104 @@ impl FixOpts {
         if *allow_staged {
             cmd.arg("--allow-staged");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::*;
+
+    fn parse(args: &[&str]) -> CargoFluxCommand {
+        let Cli::Flux { command: Some(command), .. } = Cli::try_parse_from(args).unwrap() else {
+            panic!("expected a subcommand")
+        };
+        command
+    }
+
+    fn args(command: &Command) -> Vec<String> {
+        command
+            .get_args()
+            .map(|s| s.to_str().unwrap().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn library_scope_and_lock_policy_reach_cargo_and_metadata() {
+        let opts =
+            parse(&["cargo", "flux", "check", "-p", "example", "--lib", "--locked", "--offline"]);
+        let mut cmd = Command::new("cargo");
+        opts.forward_args(&mut cmd, Path::new("config.toml"));
+        assert_eq!(
+            args(&cmd),
+            [
+                "check",
+                "--package",
+                "example",
+                "--lib",
+                "--offline",
+                "--locked",
+                "--profile",
+                "flux",
+                "--config",
+                "config.toml"
+            ]
+        );
+        let metadata_args = args(&opts.metadata().cargo_command());
+        assert!(metadata_args.iter().any(|a| a == "--offline"));
+        assert!(metadata_args.iter().any(|a| a == "--locked"));
+        assert!(!metadata_args.iter().any(|a| a == "--lib"));
+    }
+
+    #[test]
+    fn named_targets_and_all_targets_reach_build() {
+        let opts = parse(&[
+            "cargo",
+            "flux",
+            "build",
+            "--bin",
+            "first",
+            "--bin",
+            "second",
+            "--test",
+            "integration",
+            "--example",
+            "demo",
+            "--bench",
+            "perf",
+            "--all-targets",
+        ]);
+        let mut cmd = Command::new("cargo");
+        opts.forward_args(&mut cmd, Path::new("config.toml"));
+        assert_eq!(
+            args(&cmd),
+            [
+                "build",
+                "--all-targets",
+                "--bin",
+                "first",
+                "--bin",
+                "second",
+                "--test",
+                "integration",
+                "--example",
+                "demo",
+                "--bench",
+                "perf",
+                "--profile",
+                "flux",
+                "--config",
+                "config.toml"
+            ]
+        );
+    }
+
+    #[test]
+    fn default_target_selection_is_unchanged() {
+        let opts = parse(&["cargo", "flux", "check"]);
+        let mut cmd = Command::new("cargo");
+        opts.forward_args(&mut cmd, Path::new("config.toml"));
+        assert_eq!(args(&cmd), ["check", "--profile", "flux", "--config", "config.toml"]);
     }
 }

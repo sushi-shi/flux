@@ -1,0 +1,13 @@
+diff --git a/xtask/src/main.rs b/xtask/src/main.rs
+index a6790e6..d9d3ba1 100644
+--- a/xtask/src/main.rs
++++ b/xtask/src/main.rs
+@@ -340,7 +340,7 @@ fn run_inner(
+     suggestions: bool,
+ ) -> Result<(), anyhow::Error> {
+     let config = SysrootConfig {
+-        profile: Profile::Dev,
++        profile: if std::env::var("XPROF").as_deref() == Ok("release") { Profile::Release } else { Profile::Dev },
+         rust_fixpoint,
+         suggestions,
+         dst: local_sysroot_dir()?,

@@ -10,3 +10,5 @@ fixpoint
 fixpoint
 *.log
 mir_dump
+
+__pycache__/
