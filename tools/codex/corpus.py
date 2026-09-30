@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -201,7 +202,38 @@ def prepare(source, revision, destination):
     })
 
 
-def check(source, flux, packages, output, offline, only_check=None):
+def execute_check(args, cwd, env, log, timeout):
+    """Own a process group so timeout/interrupt also stops rustc and solver children."""
+    def stop(process):
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+
+    with subprocess.Popen(args, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT,
+                          start_new_session=True) as process:
+        try:
+            return process.wait(timeout=timeout), False
+        except subprocess.TimeoutExpired:
+            stop(process)
+            return process.returncode, True
+        except BaseException:
+            stop(process)
+            raise
+
+
+def check(source, flux, packages, output, offline, only_check=None, targets='lib', timeout=300):
+    if timeout <= 0:
+        raise ValueError("Timeout must be positive")
     if not (source / ".git/flux-corpus.json").is_file():
         raise ValueError("Use prepare first; checks only modify an owned corpus checkout")
     if output.exists():
@@ -212,12 +244,12 @@ def check(source, flux, packages, output, offline, only_check=None):
     by_name = {p["name"]: p for p in baseline["packages"]}
     if packages is None:
         packages = [p["name"] for p in baseline["packages"]
-                    if any("lib" in t["kind"] for t in p["targets"])]
+                    if targets == "all" or any("lib" in t["kind"] for t in p["targets"])]
     unknown = set(packages) - by_name.keys()
     if unknown:
         raise ValueError(f"Unknown packages: {sorted(unknown)}")
-    if any(not any("lib" in t["kind"] for t in by_name[p]["targets"]) for p in packages):
-        raise ValueError("This first runner checks library targets only; other targets remain unattempted")
+    if targets == "lib" and any(not any("lib" in t["kind"] for t in by_name[p]["targets"]) for p in packages):
+        raise ValueError("Selected package has no library; use --targets all")
     sysroot = flux / "sysroot"
     binary = flux / "target/debug/cargo-flux"
     if not binary.is_file() or not (sysroot / "flux-driver").is_file():
@@ -244,7 +276,9 @@ def check(source, flux, packages, output, offline, only_check=None):
         "flags": flags,
         "only_check": only_check,
         "runner_sha256": file_digest(Path(__file__)),
-        "configuration": "host target, default features, selected library bodies; tests and binaries not checked",
+        "configuration": {"platform": "host", "features": "default", "targets": targets},
+        "timeout_seconds_per_package": timeout,
+        "scope_note": "Other platforms and feature configurations remain unattempted; required-feature targets may be skipped by Cargo",
         "packages": [],
     }
     env = os.environ.copy()
@@ -262,7 +296,8 @@ def check(source, flux, packages, output, offline, only_check=None):
         log_dir = output / name
         log_dir.mkdir()
         # A unique logging flag forces Cargo to invoke Flux again even with warm artifacts.
-        args = [str(binary), "flux", "check", "-p", name, "--lib", "--locked"]
+        args = [str(binary), "flux", "check", "-p", name,
+                "--lib" if targets == "lib" else "--all-targets", "--locked"]
         if only_check:
             args.extend(["--only-check", only_check])
         args.extend("-" + flag.replace("=on", "=true") for flag in flags)
@@ -273,15 +308,17 @@ def check(source, flux, packages, output, offline, only_check=None):
         try:
             manifest.write_bytes(original + b"\n[package.metadata.flux]\nenabled = true\n")
             with (log_dir / "output.log").open("w") as log:
-                result = subprocess.run(args, cwd=source / "codex-rs", env=env,
-                                        stdout=log, stderr=subprocess.STDOUT)
+                returncode, timed_out = execute_check(
+                    args, source / "codex-rs", env, log, timeout)
         finally:
             manifest.write_bytes(original)
         mapping = function_map(log_dir)
         write_json(log_dir / "function-map.json", mapping)
-        outcome = classify(result.returncode, (log_dir / "output.log").read_text())
+        outcome = classify(returncode, (log_dir / "output.log").read_text())
+        if timed_out:
+            outcome['status'] = 'timeout'
         outcome.update({
-            "package": name, "command": args, "returncode": result.returncode,
+            "package": name, "command": args, "returncode": returncode, "timed_out": timed_out,
             "elapsed_seconds": round(time.monotonic() - start, 3),
             "diagnostics": str(log_dir.relative_to(output) / "output.log"),
             "specification_status": "needs_review",
@@ -311,6 +348,9 @@ def main():
     selection = run.add_mutually_exclusive_group(required=True)
     selection.add_argument("--package", action="append")
     selection.add_argument("--all-libraries", action="store_true")
+    selection.add_argument("--all-packages", action="store_true")
+    run.add_argument("--targets", choices=("lib", "all"), default="lib")
+    run.add_argument("--timeout", type=float, default=300, help="Seconds per package, including compilation")
     run.add_argument("--only-check")
     run.add_argument("--output", type=Path, required=True)
     run.add_argument("--offline", action="store_true")
@@ -323,8 +363,12 @@ def main():
     elif args.action == "prepare":
         prepare(args.source, args.revision, args.destination.resolve())
     else:
+        if args.all_libraries and args.targets != "lib":
+            parser.error("Use --all-packages with --targets all")
+        if args.all_packages and args.targets != "all":
+            parser.error("--all-packages requires --targets all")
         report = check(args.source, args.flux.resolve(), args.package,
-                       args.output.resolve(), args.offline, args.only_check)
+                       args.output.resolve(), args.offline, args.only_check, args.targets, args.timeout)
         return int(any(p["status"] != "checked_with_observed_models" for p in report["packages"]))
     return 0
 

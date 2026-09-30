@@ -41,12 +41,18 @@ package, so a warm Cargo build is not mistaken for a fresh verification.
 
 Add `--offline` after dependencies have been fetched. Both metadata resolution
 and compilation honor it and `--locked`. To expand the baseline, replace package
-selection with `--all-libraries`. To reduce a failure, use
+selection with `--all-libraries`, or use `--all-packages --targets all` to also
+check binaries, examples, benches, and test targets. Cargo may skip targets whose
+required features are disabled; these stay in the inventory. `--timeout 300`
+bounds each package, including dependency compilation. A timeout or interruption
+stops the owned Cargo process group (including compiler and solver children),
+restores the temporary manifest, and retains available evidence. To reduce a failure, use
 `--only-check 'def:function_name'`; the report records this restriction.
 
 The initial configuration enables library models, strict arithmetic checking,
-and panic obligations on the host platform with default features. Only library
-targets are run by this harness; binaries, tests, feature combinations, and other
+and panic obligations on the host platform with default features. Library targets
+are the default. `--targets all` checks available additional targets, including
+test bodies, without executing runtime tests. Other feature combinations and
 platforms remain explicit inventory entries, not verified coverage. General
 iterator model assumptions still need auditing, so an accepted check is only an
 observation under the loaded models, not a correctness certification.
