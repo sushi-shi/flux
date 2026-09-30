@@ -14,3 +14,5 @@ extern crate rustc_span;
 
 pub mod callbacks;
 mod collector;
+
+mod coverage;
