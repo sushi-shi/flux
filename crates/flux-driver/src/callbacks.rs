@@ -27,7 +27,7 @@ use rustc_interface::interface::Compiler;
 use rustc_middle::{queries, ty::TyCtxt, util};
 use rustc_session::config::OutputType;
 
-use crate::collector::SpecCollector;
+use crate::{collector::SpecCollector, coverage::Coverage};
 
 #[derive(Default)]
 pub struct FluxCallbacks;
@@ -72,7 +72,9 @@ impl FluxCallbacks {
         let cstore = CStore::load(tcx, &sess);
         let arena = fhir::Arena::new();
         GlobalEnv::enter(tcx, &sess, Box::new(cstore), &arena, providers, |genv| {
-            let result = metrics::time_it(TimingKind::Total, || check_crate(genv));
+            let mut coverage = Coverage::new(genv);
+            let result = metrics::time_it(TimingKind::Total, || check_crate(genv, &mut coverage));
+            coverage.finish(result.is_ok());
             if result.is_ok() {
                 encode_and_save_metadata(genv);
             }
@@ -125,14 +127,14 @@ fn inject_std_extern_specs(config: &mut rustc_interface::interface::Config) {
     config.opts.externs = Externs::new(map);
 }
 
-fn check_crate(genv: GlobalEnv) -> Result<(), ErrorGuaranteed> {
+fn check_crate(genv: GlobalEnv, coverage: &mut Coverage) -> Result<(), ErrorGuaranteed> {
     tracing::info_span!("check_crate").in_scope(move || {
         tracing::info!("Callbacks::check_wf");
         // Query qualifiers and spec funcs to report wf errors
         let _ = genv.qualifiers().emit(&genv)?;
         let _ = genv.normalized_defns(LOCAL_CRATE);
 
-        let mut ck = CrateChecker::new(genv);
+        let mut ck = CrateChecker::new(genv, coverage);
 
         // Iterate over all def ids including dummy items for extern specs
         let result = genv
@@ -221,20 +223,29 @@ fn encode_and_save_metadata(genv: GlobalEnv) {
     }
 }
 
-struct CrateChecker<'genv, 'tcx> {
+struct CrateChecker<'a, 'genv, 'tcx> {
+    coverage: &'a mut Coverage,
     genv: GlobalEnv<'genv, 'tcx>,
     cache: FixQueryCache,
 }
 
-impl<'genv, 'tcx> CrateChecker<'genv, 'tcx> {
-    fn new(genv: GlobalEnv<'genv, 'tcx>) -> Self {
-        Self { genv, cache: QueryCache::load() }
+impl<'a, 'genv, 'tcx> CrateChecker<'a, 'genv, 'tcx> {
+    fn new(genv: GlobalEnv<'genv, 'tcx>, coverage: &'a mut Coverage) -> Self {
+        Self { genv, cache: QueryCache::load(), coverage }
     }
 
     fn check_def_catching_bugs(&mut self, def_id: LocalDefId) -> Result<(), ErrorGuaranteed> {
-        let mut this = std::panic::AssertUnwindSafe(self);
+        self.coverage.begin(def_id);
+        let mut this = std::panic::AssertUnwindSafe(&mut *self);
         let msg = format!("def_id: {:?}, span: {:?}", def_id, this.genv.tcx().def_span(def_id));
-        flux_common::bug::catch_bugs(&msg, move || this.check_def(def_id))?
+        let result = flux_common::bug::catch_bugs(&msg, move || this.check_def(def_id));
+        let outcome = match result {
+            Ok(Ok(())) => "accepted",
+            Ok(Err(_)) => "check_error",
+            Err(_) => "checker_crash",
+        };
+        self.coverage.end(self.genv, def_id, outcome);
+        result?
     }
 
     fn check_def(&mut self, def_id: LocalDefId) -> Result<(), ErrorGuaranteed> {

@@ -130,6 +130,10 @@ pub fn annots() -> bool {
     FLAGS.annots
 }
 
+pub fn coverage() -> bool {
+    FLAGS.coverage
+}
+
 pub fn timings() -> bool {
     FLAGS.timings
 }

@@ -67,6 +67,9 @@ pub struct Flags {
         default_missing_value = "true"
     )]
     pub annots: bool,
+    /// Journal function contracts and check outcomes in the log directory.
+    #[arg(long = flux_arg!("coverage"), num_args = 0..=1, default_missing_value = "true")]
+    pub coverage: bool,
     /// Print statistics about time taken to analyze each function. Also dumps a file with the raw
     /// times for each function.
     #[arg(
@@ -258,6 +261,7 @@ impl Default for Flags {
             solver: SmtSolver::default(),
             smt_define_fun: false,
             annots: false,
+            coverage: false,
             timings: false,
             summary: true,
             verify: false,
@@ -344,6 +348,7 @@ pub(crate) static FLAGS: LazyLock<Flags> = LazyLock::new(|| {
             "solver" => parse_solver(&mut flags.solver, value),
             "smt-define-fun" => parse_bool(&mut flags.smt_define_fun, value),
             "annots" => parse_bool(&mut flags.annots, value),
+            "coverage" => parse_bool(&mut flags.coverage, value),
             "timings" => parse_bool(&mut flags.timings, value),
             "summary" => parse_bool(&mut flags.summary, value),
             "cache" => parse_opt_path_buf(&mut flags.cache, value),

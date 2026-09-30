@@ -3,7 +3,9 @@
 Run real Codex code, reduce failures, add a general model, lemma, or checker fix,
 and rerun the affected code. Expand this loop until the whole tool has meaningful
 contracts and accounted-for proof obligations. The package inventory keeps work
-that has not yet been attempted visible; it is not a function or specification map.
+that has not yet been attempted visible. Function journals add observations for
+each compiler invocation; they do not establish that intended behavior has been
+fully specified.
 
 Use the pinned environment from the Flux root:
 
@@ -88,3 +90,33 @@ Missing capabilities produce obligations; they are not proof success. A separate
 escaping-bound-variable crash with `filter(...).enumerate()` remains unresolved.
 The false count proof is retained as a negative regression independently of that
 crash. Future models must include counterexamples as well as accepted programs.
+
+## Function evidence
+
+`-Fcoverage=on` (or `--Fcoverage=true` through Cargo) writes an append-only JSONL
+journal under the log directory. It inventories active local functions, methods,
+and closures before checking bodies, including source locations and explicit
+contract text. A start, inventory-complete marker, per-item outcomes, and a final
+marker distinguish complete observations from interrupted compilation. Invocation
+IDs prevent overwriting repeated crate checks. The corpus runner preserves these
+journals and writes `function-map.json` beside each package log.
+
+Outcomes distinguish accepted checks under loaded models, check errors, caught
+checker crashes, interrupted or unattempted bodies, trusted functions, ignored
+items, unselected items, and declarations without bodies. Closures remain
+obligations of the enclosing body; they do not get independent proof credit.
+Lean results are conservatively left unattributed by this reporter. A complete
+journal can describe a failed crate; completeness refers only to observations.
+
+The map covers the active compiler configuration, not cfg-disabled source.
+Dependency proof closure, external models, contract adequacy, domain effects,
+other platforms, and other targets still need review. Even an explicit contract
+is not automatically a meaningful behavioral specification. An accepted check
+without an explicit contract is recorded as such, never as fully specified code.
+Multiple invocations are kept separate rather than added into a coverage percent.
+
+Exercise real compiler reporting, including an intentionally false contract:
+
+```sh
+python3 tools/codex/integration_coverage.py
+```

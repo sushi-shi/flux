@@ -129,6 +129,65 @@ def classify(returncode, log):
     }
 
 
+def read_coverage(path):
+    """Read partial journals without promoting missing results to proof success."""
+    functions = {}
+    start = None
+    inventory_complete = False
+    finish = None
+    errors = []
+    for number, line in enumerate(path.read_text().splitlines(), 1):
+        try:
+            event = json.loads(line)
+            kind = event['event']
+            if kind == 'start':
+                if start is not None or event.get('schema_version') != 1:
+                    raise ValueError('duplicate start or unsupported schema')
+                start = event
+            elif kind == 'function':
+                if event['id'] in functions:
+                    raise ValueError('duplicate function identity')
+                functions[event['id']] = event
+            elif kind == 'result':
+                functions[event['id']]['status'] = event['status']
+            elif kind == 'inventory_complete':
+                inventory_complete = True
+            elif kind == 'finish':
+                finish = event
+            else:
+                raise ValueError('unknown coverage event')
+        except (KeyError, TypeError, ValueError) as error:
+            errors.append(f'line {number}: {error}')
+    complete = bool(start and inventory_complete and finish is not None and not errors)
+    entries = list(functions.values())
+    counts = {}
+    for function in entries:
+        if function['status'] == 'in_progress':
+            function['status'] = 'interrupted'
+        status = function['status']
+        counts[status] = counts.get(status, 0) + 1
+    return {
+        'journal': path.name, 'crate': start.get('crate') if start else None,
+        'complete': complete, 'inventory_complete': inventory_complete,
+        'crate_check_succeeded': finish.get('success') if finish else None,
+        'errors': errors, 'counts': counts, 'functions': entries,
+        'trust_dependencies': 'not_collected',
+        'specification_status': 'needs_review',
+    }
+
+
+def function_map(log_dir):
+    invocations = [read_coverage(p) for p in sorted(log_dir.glob('*-coverage.jsonl'))]
+    return {
+        'schema_version': 1,
+        'scope': 'Active compiler configurations only; invocations are not deduplicated',
+        'status': ('complete_observations' if invocations and all(i['complete'] for i in invocations)
+                   else 'incomplete_or_unavailable'),
+        'specification_status': 'needs_review',
+        'invocations': invocations,
+    }
+
+
 def prepare(source, revision, destination):
     if destination.exists():
         raise ValueError("Destination already exists; refusing to overwrite it")
@@ -169,7 +228,7 @@ def check(source, flux, packages, output, offline, only_check=None):
     write_json(output / "inventory.json", baseline)
     flags = [
         "-Fstd-extern-specs=on", "-Fcheck-overflow=strict", "-Fno-panic=on",
-        "-Ftimings=on", "-Fsummary=on",
+        "-Ftimings=on", "-Fsummary=on", "-Fcoverage=on",
     ]
     flux_patch = subprocess.check_output(["git", "diff", "--binary", "HEAD"], cwd=flux)
     (output / "flux.patch").write_bytes(flux_patch)
@@ -218,12 +277,17 @@ def check(source, flux, packages, output, offline, only_check=None):
                                         stdout=log, stderr=subprocess.STDOUT)
         finally:
             manifest.write_bytes(original)
+        mapping = function_map(log_dir)
+        write_json(log_dir / "function-map.json", mapping)
         outcome = classify(result.returncode, (log_dir / "output.log").read_text())
         outcome.update({
             "package": name, "command": args, "returncode": result.returncode,
             "elapsed_seconds": round(time.monotonic() - start, 3),
             "diagnostics": str(log_dir.relative_to(output) / "output.log"),
-            "specification_status": "unmapped",
+            "specification_status": "needs_review",
+            "function_map": str(log_dir.relative_to(output) / "function-map.json"),
+            "mapping_status": mapping['status'],
+            "dependency_proofs": "not_collected",
         })
         report["packages"].append(outcome)
         write_json(output / "report.json", report)
