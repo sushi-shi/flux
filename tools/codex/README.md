@@ -155,3 +155,44 @@ rustc --test tools/codex/model_checks/saturating_mul.rs -o /tmp/saturating-model
 The actual Codex caller and its monotonicity proof were checked individually.
 Changing its multiplier from four to three failed both Flux checking and the
 native budget regression. The correct version passed all 20 string-crate tests.
+
+## Measuring incremental checks
+
+Add `--proof-cache /path/to/cache` to library checks to reuse constraint results.
+The cache namespace changes with the driver, library model metadata, fixpoint,
+Rust version, solver version, and checking configuration. Within that namespace,
+Flux validates the generated constraint hash for each query; editing source does
+not discard unrelated queries. This is solver reuse, not incremental parsing or
+a complete dependency proof system. The current experiment restricts caching to
+library targets to avoid concurrent target invocations sharing a cache file.
+
+Repeat `--only-check` to select several related bodies. Selection is attached to
+the chosen package, so dependencies do not inherit a filter that skips their
+checks. Each report includes available checker, body, and solver times, actual
+body-cache hits, Cargo command duration, and observed build-lock contention.
+Missing timing files remain missing evidence. Compiler invocation timing files
+may overwrite each other for repeated crate names; all-target runs are therefore
+not a reliable per-invocation performance benchmark yet.
+
+The budget benchmark requires the Codex token-budget contract and proof:
+
+```sh
+python3 tools/codex/benchmark_incremental.py \
+  --source /path/to/prepared-codex --flux "$PWD" \
+  --output /tmp/codex-budget-benchmark
+```
+
+It runs three selected bodies with an empty cache, repeats unchanged checks, and
+then mutates code, a contract, and a proof. Each mutation must fail, unaffected
+queries must still be reused, and restored source must pass. Source and package
+manifests are restored even on failure. Shared model changes invalidate the
+namespace conservatively; selective transitive dependency invalidation remains
+future work.
+
+One development run measured 172 ms of checking with an empty cache and 20 ms
+on each unchanged rerun (three cache hits, no solver queries). Code and proof
+mutations reused two bodies; a contract mutation reused one. Cargo commands took
+about 3 seconds on unchanged reruns and include work outside the verifier.
+These are observations for three arithmetic bodies during development, not a
+whole-project performance claim. Reported Cargo duration excludes corpus
+inventory and evidence hashing; use process wall time for total harness cost.
