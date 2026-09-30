@@ -12,6 +12,7 @@ struct Skip<I>;
 
 #[extern_spec(core::iter)]
 #[assoc(
+    fn has_size_model() -> bool { <I as Iterator>::has_size_model() }
     fn size(r: Skip) -> int { r.size }
     fn step(self: Skip, other: Skip) -> bool {
         other.size == if self.size > 0 { self.size - 1 } else { self.size }
@@ -20,6 +21,7 @@ struct Skip<I>;
 impl<I: Iterator> Iterator for Skip<I> {
     #[spec(
         fn(self: &mut Self[@curr_s]) -> Option<_>[!<Self as Iterator>::done(curr_s)]
+        requires <I as Iterator>::has_size_model()
         ensures self: Self{next_s: <Self as Iterator>::step(curr_s, next_s)}
     )]
     fn next(&mut self) -> Option<I::Item>;

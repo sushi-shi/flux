@@ -100,3 +100,8 @@ pub fn test_exhausted_range_is_unchanged() {
     assert(range.next().is_none());
     assert(range.start == start);
 }
+
+pub fn take_bounds_an_unmodeled_infinite_iterator() {
+    let mut target = [0; 100];
+    test_take_easy(&mut target, std::iter::repeat(7));
+}

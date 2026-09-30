@@ -52,7 +52,7 @@ flux_rs::defs! {
     qualifier SzEqB(i: int, iter: int, size: int -> int, iter0: int) { i + size(iter) == size(iter0) }
 }
 
-#[spec(fn(it: I[@s]) -> usize[<I as Iterator>::size(s)])]
+#[spec(fn(it: I[@s]) -> usize[<I as Iterator>::size(s)] requires <I as Iterator>::has_size_model())]
 pub fn count<I: Iterator>(mut it: I) -> usize {
     let mut n = 0;
     while let Some(_) = it.next() {
