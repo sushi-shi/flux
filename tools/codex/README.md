@@ -99,6 +99,10 @@ crash. Future models must include counterexamples as well as accepted programs.
 
 ## Function evidence
 
+The [review checkpoint](OPENAI-REVIEW.md) connects the specification and draft PR
+stack to a retained 152-package baseline, diagnostics, and mutation/performance
+evidence. It explicitly distinguishes observations from completed specifications.
+
 `-Fcoverage=on` (or `--Fcoverage=true` through Cargo) writes an append-only JSONL
 journal under the log directory. It inventories active local functions, methods,
 and closures before checking bodies, including source locations and explicit

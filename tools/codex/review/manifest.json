@@ -1,0 +1,34 @@
+{
+  "agent-roles-after-scope-fix.json.gz": {
+    "sha256": "d978ee8cfd4571db374ecba3c6720b71430766cb9b4856d38cf24cff352209ae",
+    "bytes": 8336
+  },
+  "baseline-diagnostics.json.gz": {
+    "sha256": "6a9128335250023074d786c7f21475f5f05a666197b6dc5a647e46f8a5d30757",
+    "bytes": 535532
+  },
+  "baseline-summary.json": {
+    "sha256": "e71cc76d5d86f6d539461b99caa587e7de71c909c7d788212aa31ab221c12c9b",
+    "bytes": 69240
+  },
+  "budget-run-evidence.json.gz": {
+    "sha256": "a91c7f97644711eeec45b37ed7a97a30357c75c8aa669b409588b700b09ec0e3",
+    "bytes": 7307
+  },
+  "codex-function-baseline.json.gz": {
+    "sha256": "12e6f103b0fc9928dcf9a88b07743dca16c4bc77d1ad5efb32393083989719b3",
+    "bytes": 2465530
+  },
+  "cross-package-evidence.json.gz": {
+    "sha256": "99936c015d6bf9a1b01d4f1aa9909d5267b9bb6aa450835315f9ce3f60bc3ec9",
+    "bytes": 14736
+  },
+  "incremental-benchmark.json": {
+    "sha256": "a67f5c92b170714d946bc4391ba413b0318f64c624b114bd7323c582b7113e8c",
+    "bytes": 9212
+  },
+  "validation-logs.json.gz": {
+    "sha256": "4de7cb02a1feb2c4968207599ec603a7931ff7e9c9636ea39304eea087306d53",
+    "bytes": 15080
+  }
+}
