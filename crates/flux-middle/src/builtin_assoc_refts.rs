@@ -122,22 +122,27 @@ impl<'tcx> GlobalEnv<'_, 'tcx> {
             .unwrap_or_else(|| bug!("missing builtin assoc reft `{name}` for `{def_id:?}`"))
     }
 
+    /// Returns a concrete body when the compiler can resolve the refinement.
+    /// Generic layouts stay symbolic until their type parameters are known.
     pub fn builtin_assoc_reft_body(
         self,
         typing_env: rustc_middle::ty::TypingEnv<'tcx>,
         alias_reft: &AliasReft,
-    ) -> rty::Lambda {
+    ) -> Option<rty::Lambda> {
         let tcx = self.tcx();
 
         if tcx.is_lang_item(alias_reft.assoc_id.parent(), LangItem::Sized) {
             let self_ty = alias_reft.to_rustc_trait_ref(tcx).self_ty();
-            let layout = tcx.layout_of(typing_env.as_query_input(self_ty)).unwrap();
+            // A generic struct may have a builtin Sized implementation while its
+            // layout still depends on a type or const parameter. Keeping the
+            // associated refinement opaque preserves that dependency.
+            let layout = tcx.layout_of(typing_env.as_query_input(self_ty)).ok()?;
             let body = match alias_reft.assoc_id.name() {
                 sym::size_of => rty::Expr::constant(rty::Constant::from(layout.size.bytes())),
                 sym::align_of => rty::Expr::constant(rty::Constant::from(layout.align.abi.bytes())),
                 _ => bug!("invalid builtin assoc reft {:?}", alias_reft.assoc_id),
             };
-            rty::Lambda::bind_with_vars(body, List::empty(), rty::Sort::Int)
+            Some(rty::Lambda::bind_with_vars(body, List::empty(), rty::Sort::Int))
         } else if tcx.is_lang_item(alias_reft.assoc_id.parent(), LangItem::FnOnce)
             && alias_reft.assoc_id.name() == sym::no_panic
         {
@@ -152,7 +157,7 @@ impl<'tcx> GlobalEnv<'_, 'tcx> {
                 }
                 _ => rty::Expr::ff(),
             };
-            rty::Lambda::bind_with_vars(body, List::empty(), rty::Sort::Bool)
+            Some(rty::Lambda::bind_with_vars(body, List::empty(), rty::Sort::Bool))
         } else {
             bug!("invalid builtin assoc reft {:?}", alias_reft.assoc_id)
         }
