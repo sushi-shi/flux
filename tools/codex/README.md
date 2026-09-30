@@ -126,3 +126,32 @@ Exercise real compiler reporting, including an intentionally false contract:
 ```sh
 python3 tools/codex/integration_coverage.py
 ```
+
+## Saturating token budgets and checked lemmas
+
+Codex's `approx_bytes_for_tokens` exposed a missing unsigned `saturating_mul`
+model: neither its capped-product postcondition nor its panic obligation could
+be discharged. The model now describes the mathematical product capped at the
+integer maximum, matching the pinned Rust implementation's checked multiply.
+
+`flux_core::num::lemmas` provides checked expansion and monotonicity facts with
+explicit `requires` and `ensures`. Their bodies are verified under strict machine
+integer bounds; they are not trusted declarations. Codex calls them under
+`#[cfg(flux)]`, leaving ordinary builds free of proof calls. Expansion excludes a
+zero multiplier, and monotonicity is non-strict because saturation can collapse
+different inputs to the same result.
+
+The regressions accept correct products for every unsigned primitive and reject
+wrapping results, a wrong token multiplier, an invalid lemma call, and a false
+strict-expansion lemma. Native checks exhaust all 65,536 byte-sized input pairs
+and cover the saturation boundaries of wider types:
+
+```sh
+cargo x test saturating_mul
+rustc --test tools/codex/model_checks/saturating_mul.rs -o /tmp/saturating-model-check
+/tmp/saturating-model-check
+```
+
+The actual Codex caller and its monotonicity proof were checked individually.
+Changing its multiplier from four to three failed both Flux checking and the
+native budget regression. The correct version passed all 20 string-crate tests.

@@ -20,6 +20,8 @@
 
 use flux_attrs::*;
 
+pub mod lemmas;
+
 macro_rules! int_spec {
     ($T:ident) => {
         #[extern_spec(core::num)]
@@ -120,6 +122,12 @@ macro_rules! uint_spec {
     ($T:ident) => {
         #[extern_spec(core::num)]
         impl $T {
+            /// Saturating multiplication returns the exact product, capped at the type maximum.
+            /// Pinned Rust implementation: `checked_mul`, with `None` mapped to `Self::MAX`.
+            #[no_panic]
+            #[spec(fn(num: $T, rhs: $T) -> $T[min(num * rhs, $T::MAX)])]
+            fn saturating_mul(self, rhs: $T) -> $T;
+
             /// Core impl: https://github.com/rust-lang/rust/blob/0e95a0f4c677002a5d4ac5bc59d97885e6f51f71/library/core/src/num/uint_macros.rs#L2384-L2400
             #[no_panic]
             #[spec(fn(num: $T, rhs: $T) -> $T[clamp(num - rhs, 0, $T::MAX)])]
