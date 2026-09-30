@@ -987,13 +987,49 @@ impl<'ck, 'genv, 'tcx, M: Mode> Checker<'ck, 'genv, 'tcx, M> {
 
         // Instantiate function signature and normalize it
         let late_refine_args = vec![];
-        let fn_sig = fn_sig
-            .instantiate(tcx, &generic_args, &early_refine_args)
-            .replace_bound_vars(
+        let fn_sig = fn_sig.instantiate(tcx, &generic_args, &early_refine_args);
+        let fn_sig = if let Some(callee_def_id) = callee_def_id
+            && genv.is_fn_call(callee_def_id)
+            && let GenericArg::Base(self_ty) = &generic_args[0]
+            && let BaseTy::Closure(closure_id, ..) = self_ty.as_bty_skipping_binder()
+        {
+            let Some(template) = self.inherited.closures.get(closure_id).cloned() else {
+                span_bug!(span, "missing template for closure {closure_id:?}");
+            };
+            // Direct calls must use the template checked when the closure was
+            // created. The generic Fn-trait signature alone does not constrain
+            // its input holes or retain the refinements of its result.
+            // Instantiate only the receiver and predicates from the trait:
+            // unused argument binders would leave unsolved inference variables.
+            let (receiver, (requires, no_panic)) = fn_sig
+                .map_ref(|sig| (sig.inputs()[0].clone(), (sig.requires.clone(), sig.no_panic())))
+                .replace_bound_vars(
+                    |_| rty::ReErased,
+                    |sort, mode, _| infcx.fresh_infer_var(sort, mode),
+                );
+            let template = template.replace_bound_vars(
                 |_| rty::ReErased,
                 |sort, mode, _| infcx.fresh_infer_var(sort, mode),
             );
-
+            rty::FnSig::new(
+                fn_sig.skip_binder_ref().safety,
+                fn_sig.skip_binder_ref().abi,
+                requires
+                    .iter()
+                    .chain(template.requires())
+                    .cloned()
+                    .collect(),
+                rty::List::from_arr([receiver, Ty::tuple(template.inputs())]),
+                template.output.clone(),
+                no_panic,
+                false,
+            )
+        } else {
+            fn_sig.replace_bound_vars(
+                |_| rty::ReErased,
+                |sort, mode, _| infcx.fresh_infer_var(sort, mode),
+            )
+        };
         let fn_sig = fn_sig
             .deeply_normalize(&mut infcx.at(span))
             .with_span(span)?;
