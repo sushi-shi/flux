@@ -244,6 +244,14 @@ impl<'sess, 'tcx> MirLoweringCtxt<'_, 'sess, 'tcx> {
     ) -> Result<Statement<'tcx>, ErrorGuaranteed> {
         let span = stmt.source_info.span;
         let kind = match &stmt.kind {
+            // These temporaries only constrain rustc's borrow checking. In a match,
+            // their places can mention fields of variants that are not active on
+            // this path. Evaluating them as runtime borrows is both unnecessary and
+            // invalid. Keep the statement location, but discard the fake assignment.
+            rustc_mir::StatementKind::Assign(box (
+                _,
+                rustc_mir::Rvalue::Ref(_, rustc_mir::BorrowKind::Fake(_), _),
+            )) => StatementKind::Nop,
             rustc_mir::StatementKind::Assign(box (place, rvalue)) => {
                 StatementKind::Assign(
                     lower_place(self.tcx, place)
