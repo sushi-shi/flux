@@ -53,7 +53,7 @@
     in
     {
       devShells.x86_64-linux.default = pkgs.mkShell {
-        packages = [ tc fixpoint pkgs.z3 pkgs.z3.dev pkgs.gmp pkgs.pkg-config pkgs.openssl pkgs.clang ];
+        packages = [ tc fixpoint pkgs.python3 pkgs.z3 pkgs.z3.dev pkgs.gmp pkgs.pkg-config pkgs.openssl pkgs.clang ];
         # Only needed for `cargo x --rust-fixpoint ...` (bindgen for z3-sys).
         LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
         BINDGEN_EXTRA_CLANG_ARGS = "-isystem ${pkgs.z3.dev}/include";
