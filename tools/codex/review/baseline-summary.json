@@ -1,0 +1,2054 @@
+{
+  "schema_version": 1,
+  "source": {
+    "revision": "8346dbdde4424aa73743bf54cda773c165a310bb",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "modified": false
+  },
+  "configuration": {
+    "platform": "host",
+    "features": "default",
+    "targets": "all"
+  },
+  "scope": "Host platform, default features, all available Cargo targets; observations are not proof coverage",
+  "package_count": 152,
+  "outcomes": {
+    "timeout": 29,
+    "proof_failure": 41,
+    "checker_or_compiler_crash": 77,
+    "dependency_build_script_crash": 2,
+    "build_or_checker_failure": 3
+  },
+  "item_observations": 100082,
+  "warning": "Observations include repeats, tests, and generated code; they are not unique functions or completed contracts",
+  "superseded": [
+    {
+      "package": "codex-models-manager",
+      "previous_run": "workspace-all-targets",
+      "replacement_run": "baseline-models-manager-retry"
+    }
+  ],
+  "crash_groups": [
+    {
+      "location": "crates/flux-refineck/src/checker.rs:2468:9: assertion `left == right` failed",
+      "packages": [
+        "codex-api",
+        "codex-file-search",
+        "codex-file-watcher",
+        "codex-mcp",
+        "codex-mcp-extension",
+        "codex-models-manager",
+        "codex-ollama",
+        "codex-protocol",
+        "codex-shell-escalation",
+        "codex-thread-store",
+        "codex-utils-pty",
+        "codex-utils-readiness",
+        "codex-websocket-client",
+        "codex-workload-identity",
+        "core_test_support"
+      ]
+    },
+    {
+      "location": "crates/flux-infer/src/infer.rs:936:29: assertion `left == right` failed",
+      "packages": [
+        "codex-connectors",
+        "codex-diagnostics",
+        "codex-exec-server-protocol",
+        "codex-goal-extension",
+        "codex-guardian-v2",
+        "codex-history",
+        "codex-http-client",
+        "codex-keyring-store",
+        "codex-model-provider",
+        "codex-queue-extension",
+        "codex-responses-api-proxy",
+        "codex-sandboxing",
+        "codex-secrets",
+        "codex-utils-cargo-bin"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/type_env.rs:709:17: assertion `left == right` failed",
+      "packages": [
+        "codex-arg0",
+        "codex-core-plugins",
+        "codex-exec-server",
+        "codex-model-provider-info",
+        "codex-otel",
+        "codex-skills-extension",
+        "codex-utils-output-truncation",
+        "codex-utils-path-uri",
+        "codex-utils-stream-parser"
+      ]
+    },
+    {
+      "location": "crates/flux-infer/src/projections.rs:382:13: impossible case reached",
+      "packages": [
+        "codex-git-utils",
+        "codex-mxc-sandbox",
+        "codex-plugin",
+        "codex-prompts",
+        "codex-state",
+        "codex-terminal-detection",
+        "codex-tools",
+        "codex-utils-absolute-path",
+        "codex-utils-sandbox-summary"
+      ]
+    },
+    {
+      "location": "crates/flux-infer/src/infer.rs:1037:17: assertion `left == right` failed",
+      "packages": [
+        "codex-execpolicy",
+        "codex-history-notes-extension",
+        "codex-memories-extension",
+        "codex-user-verification",
+        "codex-web-search-extension"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/type_env.rs:705:17: assertion `left == right` failed",
+      "packages": [
+        "codex-app-server-transport",
+        "codex-guardian-context",
+        "codex-guardian-reviewer",
+        "codex-hooks"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/type_env.rs:719:17: assertion `left == right` failed",
+      "packages": [
+        "codex-connectors-extension",
+        "codex-exec-server-test-support",
+        "codex-git-attribution",
+        "codex-stdio-to-uds"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/type_env.rs:630:17:",
+      "packages": [
+        "codex-home",
+        "codex-memories-write",
+        "codex-utils-plugins"
+      ]
+    },
+    {
+      "location": "crates/flux-infer/src/fixpoint_encoding.rs:1002:39: failed to run fixpoint: expected value at line 1 column 1",
+      "packages": [
+        "codex-attachment-store",
+        "codex-utils-string"
+      ]
+    },
+    {
+      "location": "cargo-registry/v8-150.4.0/build.rs:852:5:",
+      "packages": [
+        "codex-code-mode-host",
+        "codex-code-mode-runtime"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/type_env/place_ty.rs:207:34:",
+      "packages": [
+        "codex-agent-roles"
+      ]
+    },
+    {
+      "location": "crates/flux-metadata/src/encoder.rs:185:13: Attempted to encode non-local CrateNum crate20 for proc-macro crate",
+      "packages": [
+        "codex-app-server-protocol-noop-macros"
+      ]
+    },
+    {
+      "location": "crates/flux-infer/src/infer.rs:938:35: assertion `left == right` failed",
+      "packages": [
+        "codex-cloud-tasks-mock-client"
+      ]
+    },
+    {
+      "location": "crates/flux-infer/src/infer.rs:1050:17: assertion `left == right` failed",
+      "packages": [
+        "codex-code-mode"
+      ]
+    },
+    {
+      "location": "crates/flux-middle/src/rty/binder.rs:193:18: unexpected escaping region BoundRegion { var: 1, kind: Named(DefId(0:1268 ~ codex_extension_api[19b6]::contributors::world_state::LegacyFragmentMatcher::'_#1)) }",
+      "packages": [
+        "codex-extension-api"
+      ]
+    },
+    {
+      "location": "crates/flux-rustc-bridge/src/ty/mod.rs:1078:17: TODO: to_rustc for `auth::agent_identity::register_managed_chatgpt_agent_identity::{closure#0}::{closure#0}::{closure#0}<(), std::future::ResumeTy, (), std::result::Result<std::string::String, std::io::Error>, (&'_ codex_http_client::HttpClient, &'_ str, &'_ bool, &'_ std::string::String, &'_ codex_agent_identity::GeneratedAgentKeyMaterial, &'_ codex_protocol::protocol::SessionSource)>`",
+      "packages": [
+        "codex-login"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/type_env.rs:473:17:",
+      "packages": [
+        "codex-message-history"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/checker.rs:2603:28: impossible case reached",
+      "packages": [
+        "codex-otel-trace-websocket"
+      ]
+    },
+    {
+      "location": "crates/flux-infer/src/infer.rs:1083:17: assertion `left == right` failed",
+      "packages": [
+        "codex-realtime-webrtc"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/type_env/place_ty.rs:264:22: Value",
+      "packages": [
+        "codex-rollout-trace"
+      ]
+    },
+    {
+      "location": "crates/flux-refineck/src/type_env.rs:657:17:",
+      "packages": [
+        "codex-shell-command"
+      ]
+    },
+    {
+      "location": "crates/flux-middle/src/rty/binder.rs:193:18: unexpected escaping region BoundRegion { var: 0, kind: Named(DefId(0:46 ~ codex_utils_git_discovery[3868]::RootFinder::'_)) }",
+      "packages": [
+        "codex-utils-git-discovery"
+      ]
+    },
+    {
+      "location": "cargo-registry/alsa-sys-0.4.0/build.rs:13:19:",
+      "packages": [
+        "codex-voice-host"
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "package": "app_test_support",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.005,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-agent-extension",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.005,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-agent-graph-store",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 33.435,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 79,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-agent-identity",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.012,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 268,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-agent-roles",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 39.131,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 139,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-analytics",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.004,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-ansi-escape",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 6.127,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 13,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-api",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 27.449,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 3354,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-app-server",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.007,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-app-server-client",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.004,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-app-server-daemon",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.004,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-app-server-protocol",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.008,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-app-server-protocol-noop-macros",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.317,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 5,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-app-server-test-client",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.009,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-app-server-transport",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 42.248,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 2507,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-apply-patch",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.006,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-arg0",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 24.256,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 76,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-async-utils",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.221,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 28,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-attachment-store",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 7.678,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 80,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-aws-auth",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 24.715,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 163,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-backend-client",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.009,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-backend-openapi-models",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.069,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 817,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-build-info",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.226,
+      "mapping_status": "complete_observations",
+      "invocations": 1,
+      "item_observations": 1,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-bwrap",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.972,
+      "mapping_status": "complete_observations",
+      "invocations": 1,
+      "item_observations": 7,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-chatgpt",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.011,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-cli",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 9.697,
+      "mapping_status": "complete_observations",
+      "invocations": 1,
+      "item_observations": 1,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-client",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 7.633,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 33,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-cloud-config",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.015,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 489,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-cloud-tasks",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.126,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-cloud-tasks-client",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.019,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 449,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-cloud-tasks-mock-client",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 7.095,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 69,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-code-mode",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 31.145,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1182,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-code-mode-host",
+      "outcome": "dependency_build_script_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 13.695,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-code-mode-protocol",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.47,
+      "mapping_status": "complete_observations",
+      "invocations": 1,
+      "item_observations": 1,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-code-mode-runtime",
+      "outcome": "dependency_build_script_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 8.109,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-collaboration-mode-templates",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.367,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 1,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-config",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.005,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-config-schema",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.118,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 23,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-connectors",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.012,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1058,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-connectors-extension",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 44.694,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 23,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-context-fragments",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 14.542,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 149,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-core",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.005,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-core-api",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.319,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 1,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-core-plugins",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 38.579,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 4621,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-diagnostics",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.471,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 63,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-exec",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.005,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-exec-server",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 42.914,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 1,
+      "item_observations": 2455,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-exec-server-protocol",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 22.824,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 2423,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-exec-server-test-support",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 29.147,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 249,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-execpolicy",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 23.177,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 648,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-experimental-api-macros",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 8.583,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 47,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-extension-api",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 35.187,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 477,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-extension-items",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 17.354,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 388,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-external-agent-migration",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.02,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1531,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-features",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.033,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1158,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-feedback",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.006,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-file-search",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 7.179,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 216,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-file-system",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 17.553,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 525,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-file-watcher",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.372,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 221,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-git-attribution",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 33.477,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 64,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-git-utils",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 22.707,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 826,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-goal-extension",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.827,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 705,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-guardian-context",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.624,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 719,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-guardian-reviewer",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 29.466,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 422,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-guardian-v2",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 33.231,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 985,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-history",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.325,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1084,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-history-notes-extension",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.67,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 119,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-home",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.818,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 45,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-hooks",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 11.955,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 3171,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-http-client",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 6.889,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1197,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-image-generation-extension",
+      "outcome": "build_or_checker_failure",
+      "original_classifier": "build_or_checker_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.17,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 139,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-install-context",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 5.778,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 137,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-keyring-store",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 10.133,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 71,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-linux-sandbox",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.617,
+      "mapping_status": "complete_observations",
+      "invocations": 1,
+      "item_observations": 1,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-lmstudio",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.005,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-login",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.376,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 1,
+      "item_observations": 1018,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-mcp",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 16.863,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 3416,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-mcp-extension",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 33.651,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 270,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-memories-extension",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.927,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 637,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-memories-read",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.67,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 50,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-memories-write",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.876,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 748,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-message-history",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.429,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 214,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-model-provider",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.326,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 907,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-model-provider-info",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 14.039,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 315,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-models-manager",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "baseline-models-manager-retry",
+      "elapsed_seconds": 54.575,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 550,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-mxc-sandbox",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 27.258,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 137,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-network-proxy",
+      "outcome": "build_or_checker_failure",
+      "original_classifier": "build_or_checker_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 19.752,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 2847,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-ollama",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 6.792,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 163,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-otel",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 17.898,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 927,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-otel-trace-websocket",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 5.825,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 57,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-plugin",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 10.013,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 271,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-process-hardening",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.768,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 19,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-prompts",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 5.863,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 202,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-protocol",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 16.921,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 26736,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-queue-extension",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.187,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 147,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-realtime-webrtc",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.276,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 611,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-response-debug-context",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.068,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 37,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-responses-api-proxy",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 8.632,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 135,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-rmcp-client",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 46.7,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-rollout",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 46.607,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-rollout-trace",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 31.187,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 3063,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-sandboxing",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 20.708,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 573,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-secrets",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 27.01,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 274,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-shell-command",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 6.682,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1374,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-shell-escalation",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 12.794,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 554,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-skills",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.568,
+      "mapping_status": "complete_observations",
+      "invocations": 1,
+      "item_observations": 2,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-skills-extension",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 22.297,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 3295,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-state",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 38.772,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 2625,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-stdio-to-uds",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.171,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 13,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-terminal-detection",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.823,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 133,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-test-binary-support",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.018,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 9,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-thread-manager-sample",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.822,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 41,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-thread-store",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 22.957,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 5394,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-tools",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 41.426,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1241,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-tui",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.006,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-uds",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.222,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 73,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-user-verification",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.775,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 183,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-absolute-path",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.371,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 219,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-approval-presets",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.069,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 9,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-audio",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 5.675,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 55,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-cache",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.07,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 37,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-cargo-bin",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.524,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 41,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-cli",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 26.113,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 203,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-elapsed",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.719,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 13,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-fuzzy-match",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.072,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 21,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-git-discovery",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.818,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 31,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-home-dir",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.868,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 21,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-image",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 8.131,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 161,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-json-to-toml",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.721,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 17,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-oss",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.82,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 17,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-output-truncation",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.868,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 62,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-path",
+      "outcome": "build_or_checker_failure",
+      "original_classifier": "build_or_checker_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.518,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 77,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-path-uri",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.423,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 597,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-plugins",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.969,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 104,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-pty",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.074,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 356,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-readiness",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.869,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 84,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-redacted-string",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 4.873,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 39,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-rustls-provider",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.821,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 7,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-sandbox-summary",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.868,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 21,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-sleep-inhibitor",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.006,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 67,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-stream-parser",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 5.178,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 292,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-string",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.62,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 87,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-utils-template",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 3.222,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 95,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-v8-poc",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 11.489,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 24,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-voice-host",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 7.155,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 0,
+      "item_observations": 0,
+      "complete_function_inventories": 0,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-web-search-extension",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 8.181,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 130,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-websocket-client",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 7.829,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 174,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-windows-sandbox",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 1.768,
+      "mapping_status": "complete_observations",
+      "invocations": 1,
+      "item_observations": 2,
+      "complete_function_inventories": 1,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-windows-sandbox-service",
+      "outcome": "proof_failure",
+      "original_classifier": "proof_failure",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 2.319,
+      "mapping_status": "complete_observations",
+      "invocations": 2,
+      "item_observations": 11,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-workload-identity",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 7.778,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 140,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "codex-worktree",
+      "outcome": "timeout",
+      "original_classifier": "timeout",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 45.031,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 204,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    },
+    {
+      "package": "core_test_support",
+      "outcome": "checker_or_compiler_crash",
+      "original_classifier": "checker_or_compiler_crash",
+      "run": "workspace-all-targets",
+      "elapsed_seconds": 5.394,
+      "mapping_status": "incomplete_or_unavailable",
+      "invocations": 2,
+      "item_observations": 1680,
+      "complete_function_inventories": 2,
+      "specification_status": "needs_review"
+    }
+  ]
+}

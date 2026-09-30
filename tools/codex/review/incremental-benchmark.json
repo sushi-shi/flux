@@ -1,0 +1,317 @@
+{
+  "scope": "Three selected Codex budget bodies, not whole-project speed",
+  "cache_scope": "Constraint reuse; Rust and Flux still process the selected bodies",
+  "source": {
+    "revision": "09c7398ae0f62c7554ded40717f93d4ffab62515",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "modified": false
+  },
+  "driver_sha256": "2d2e7f040ee70516958ac898fdd38cffcde85311509641dd10572d1a110a6d6a",
+  "model_sha256": {
+    "libflux_alloc.fluxmeta": "829f3871f309d730e00ce7e83b46c3bba93082523d21828a3c905a4f9bf5a58f",
+    "libflux_core.fluxmeta": "ba97152f3e0c8112b3a05197d8ef967f02a732e93e9f6ec7eb615878d7151dcd",
+    "libflux_rs.fluxmeta": "44b0fab6cde0ced9206a0427a5d78f770b23ee71babfac35126440ca817226b0"
+  },
+  "results": [
+    {
+      "stage": "cold",
+      "status": "checked_with_observed_models",
+      "elapsed_seconds": 4.171,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 72,
+          "body_ms": 68,
+          "solver_ms": 53,
+          "executed_solver_queries": 3,
+          "cached_bodies": 0
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "unchanged-0",
+      "status": "checked_with_observed_models",
+      "elapsed_seconds": 1.417,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 16,
+          "body_ms": 12,
+          "solver_ms": 0,
+          "executed_solver_queries": 0,
+          "cached_bodies": 3
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "unchanged-1",
+      "status": "checked_with_observed_models",
+      "elapsed_seconds": 1.317,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 16,
+          "body_ms": 12,
+          "solver_ms": 0,
+          "executed_solver_queries": 0,
+          "cached_bodies": 3
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "unchanged-2",
+      "status": "checked_with_observed_models",
+      "elapsed_seconds": 1.367,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 16,
+          "body_ms": 12,
+          "solver_ms": 0,
+          "executed_solver_queries": 0,
+          "cached_bodies": 3
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "code_mutation",
+      "status": "proof_failure",
+      "elapsed_seconds": 1.367,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 38,
+          "body_ms": 34,
+          "solver_ms": 19,
+          "executed_solver_queries": 1,
+          "cached_bodies": 2
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "check_error"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "code_mutation-restored",
+      "status": "checked_with_observed_models",
+      "elapsed_seconds": 1.417,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 38,
+          "body_ms": 33,
+          "solver_ms": 18,
+          "executed_solver_queries": 1,
+          "cached_bodies": 2
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "contract_mutation",
+      "status": "proof_failure",
+      "elapsed_seconds": 1.417,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 61,
+          "body_ms": 56,
+          "solver_ms": 40,
+          "executed_solver_queries": 2,
+          "cached_bodies": 1
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "check_error"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "contract_mutation-restored",
+      "status": "checked_with_observed_models",
+      "elapsed_seconds": 1.417,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 58,
+          "body_ms": 53,
+          "solver_ms": 37,
+          "executed_solver_queries": 2,
+          "cached_bodies": 1
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "proof_mutation",
+      "status": "proof_failure",
+      "elapsed_seconds": 1.367,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 40,
+          "body_ms": 35,
+          "solver_ms": 20,
+          "executed_solver_queries": 1,
+          "cached_bodies": 2
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "check_error"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    },
+    {
+      "stage": "proof_mutation-restored",
+      "status": "checked_with_observed_models",
+      "elapsed_seconds": 1.317,
+      "performance": [
+        {
+          "timings": "codex_utils_string-timings.json",
+          "checker_ms": 39,
+          "body_ms": 34,
+          "solver_ms": 21,
+          "executed_solver_queries": 1,
+          "cached_bodies": 2
+        }
+      ],
+      "build_lock_wait_observed": false,
+      "functions": [
+        {
+          "def_path": "truncate::approx_bytes_for_tokens",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::budget_proofs::token_budget_is_monotone",
+          "status": "accepted_with_observed_models"
+        },
+        {
+          "def_path": "truncate::split_budget",
+          "status": "accepted_with_observed_models"
+        }
+      ]
+    }
+  ]
+}
