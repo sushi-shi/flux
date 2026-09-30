@@ -394,6 +394,12 @@ pub trait TypeFoldable: TypeVisitable {
         struct WithHoles;
 
         impl TypeFolder for WithHoles {
+            fn fold_sort(&mut self, sort: &Sort) -> Sort {
+                // Holes describe unknown value predicates. They must not change
+                // sort identities, including associated types nested in them.
+                sort.clone()
+            }
+
             fn fold_ty(&mut self, ty: &Ty) -> Ty {
                 if let Some(bty) = ty.as_bty_skipping_existentials() {
                     Ty::exists_with_constr(bty.fold_with(self), Expr::hole(HoleKind::Pred))
