@@ -106,6 +106,8 @@ pub enum TimingKind {
 struct TimingsDump {
     /// Total time taken to run the complte Flux analysis on the crate
     total: ms,
+    /// Body queries reused from the constraint cache in this compiler invocation.
+    cached_bodies: u32,
     /// Per-function analysis timings
     functions: Vec<FuncTiming>,
     /// Per-query execution timings
@@ -164,6 +166,7 @@ pub fn print_and_dump_timings(tcx: TyCtxt) -> io::Result<()> {
         tcx,
         TimingsDump {
             total: ms(total),
+            cached_bodies: METRICS.get(Metric::FnCached),
             functions: functions
                 .into_iter()
                 .map(|(def_path, time)| FuncTiming { def_path, time_ms: ms(time) })

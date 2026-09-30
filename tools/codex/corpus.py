@@ -231,7 +231,37 @@ def execute_check(args, cwd, env, log, timeout):
             raise
 
 
-def check(source, flux, packages, output, offline, only_check=None, targets='lib', timeout=300):
+def proof_cache_namespace(report):
+    # Source revision is deliberately excluded: changed constraints are invalidated
+    # per query by Flux. Changing the tool, trusted models, solver, or check mode
+    # invalidates the whole namespace conservatively.
+    context = {key: report[key] for key in (
+        'driver_sha256', 'model_sha256', 'fixpoint_sha256', 'rustc', 'solver',
+        'flags', 'configuration',
+    )}
+    return hashlib.sha256(json.dumps(context, sort_keys=True).encode()).hexdigest()
+
+
+def performance_evidence(log_dir):
+    invocations = []
+    for path in sorted(log_dir.glob('*-timings.json')):
+        data = json.loads(path.read_text())
+        invocations.append({
+            'timings': path.name,
+            'checker_ms': data['total'],
+            'body_ms': sum(f['time_ms'] for f in data['functions']),
+            'solver_ms': sum(q['time_ms'] for q in data['queries']),
+            'executed_solver_queries': len(data['queries']),
+            'cached_bodies': data.get('cached_bodies'),
+        })
+    return invocations
+
+
+def check(source, flux, packages, output, offline, only_check=None, targets='lib', timeout=300,
+          proof_cache=None):
+    selections = [only_check] if isinstance(only_check, str) else list(only_check or [])
+    if proof_cache is not None and targets != 'lib':
+        raise ValueError('Proof-cache experiments currently require library targets')
     if timeout <= 0:
         raise ValueError("Timeout must be positive")
     if not (source / ".git/flux-corpus.json").is_file():
@@ -269,18 +299,21 @@ def check(source, flux, packages, output, offline, only_check=None, targets='lib
         "flux_revision": command(["git", "rev-parse", "HEAD"], flux),
         "flux_patch_sha256": hashlib.sha256(flux_patch).hexdigest(),
         "driver_sha256": file_digest(sysroot / "flux-driver"),
+        "cargo_flux_sha256": file_digest(binary),
         "model_sha256": {p.name: file_digest(p) for p in sorted(sysroot.glob("*.fluxmeta"))},
         "fixpoint_sha256": file_digest(Path(shutil.which("fixpoint"))),
         "rustc": command(["rustc", "-Vv"]),
         "solver": command(["z3", "--version"]),
         "flags": flags,
-        "only_check": only_check,
+        "only_check": selections,
         "runner_sha256": file_digest(Path(__file__)),
         "configuration": {"platform": "host", "features": "default", "targets": targets},
         "timeout_seconds_per_package": timeout,
         "scope_note": "Other platforms and feature configurations remain unattempted; required-feature targets may be skipped by Cargo",
         "packages": [],
     }
+    cache_namespace = proof_cache_namespace(report) if proof_cache else None
+    report['proof_cache'] = {'namespace': cache_namespace, 'root': str(proof_cache)} if proof_cache else None
     env = os.environ.copy()
     for key in ("RUSTC", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "RUSTFLAGS", "FLUXFLAGS"):
         env.pop(key, None)
@@ -298,15 +331,23 @@ def check(source, flux, packages, output, offline, only_check=None, targets='lib
         # A unique logging flag forces Cargo to invoke Flux again even with warm artifacts.
         args = [str(binary), "flux", "check", "-p", name,
                 "--lib" if targets == "lib" else "--all-targets", "--locked"]
-        if only_check:
-            args.extend(["--only-check", only_check])
+        # Put selection on this package's metadata only; other enabled dependencies
+        # must not inherit a command-line include filter and silently lose checks.
+        flux_metadata = '\n[package.metadata.flux]\nenabled = true\n'
+        if selections:
+            flux_metadata += 'include = ' + json.dumps(selections) + '\n'
+        cache_path = None
+        if proof_cache:
+            cache_path = proof_cache / cache_namespace / (name + '.json')
+            args.append('--Fcache=' + str(cache_path))
+        cache_existed = cache_path.is_file() if cache_path else False
         args.extend("-" + flag.replace("=on", "=true") for flag in flags)
         args.append("--Flog-dir=" + str(log_dir))
         if offline:
             args.append("--offline")
         start = time.monotonic()
         try:
-            manifest.write_bytes(original + b"\n[package.metadata.flux]\nenabled = true\n")
+            manifest.write_bytes(original + flux_metadata.encode())
             with (log_dir / "output.log").open("w") as log:
                 returncode, timed_out = execute_check(
                     args, source / "codex-rs", env, log, timeout)
@@ -325,6 +366,10 @@ def check(source, flux, packages, output, offline, only_check=None, targets='lib
             "function_map": str(log_dir.relative_to(output) / "function-map.json"),
             "mapping_status": mapping['status'],
             "dependency_proofs": "not_collected",
+            "temporary_flux_metadata": flux_metadata,
+            "cache_existed_before_run": cache_existed,
+            "performance": performance_evidence(log_dir),
+            "build_lock_wait_observed": 'Blocking waiting for file lock' in (log_dir / 'output.log').read_text(),
         })
         report["packages"].append(outcome)
         write_json(output / "report.json", report)
@@ -351,7 +396,8 @@ def main():
     selection.add_argument("--all-packages", action="store_true")
     run.add_argument("--targets", choices=("lib", "all"), default="lib")
     run.add_argument("--timeout", type=float, default=300, help="Seconds per package, including compilation")
-    run.add_argument("--only-check")
+    run.add_argument("--only-check", action="append")
+    run.add_argument("--proof-cache", type=Path, help="Reuse constraint queries in a tool/model/configuration namespace")
     run.add_argument("--output", type=Path, required=True)
     run.add_argument("--offline", action="store_true")
     args = parser.parse_args()
@@ -368,7 +414,8 @@ def main():
         if args.all_packages and args.targets != "all":
             parser.error("--all-packages requires --targets all")
         report = check(args.source, args.flux.resolve(), args.package,
-                       args.output.resolve(), args.offline, args.only_check, args.targets, args.timeout)
+                       args.output.resolve(), args.offline, args.only_check, args.targets, args.timeout,
+                       args.proof_cache.resolve() if args.proof_cache else None)
         return int(any(p["status"] != "checked_with_observed_models" for p in report["packages"]))
     return 0
 
