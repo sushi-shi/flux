@@ -131,6 +131,8 @@ pub(crate) trait Mode: Sized {
     #[expect(dead_code)]
     const NAME: &str;
 
+    fn start_body(&mut self, _checker_id: CheckerId) {}
+
     fn enter_basic_block<'ck, 'genv, 'tcx>(
         ck: &mut Checker<'ck, 'genv, 'tcx, Self>,
         infcx: &mut InferCtxt<'_, 'genv, 'tcx>,
@@ -529,6 +531,7 @@ impl<'ck, 'genv, 'tcx, M: Mode> Checker<'ck, 'genv, 'tcx, M> {
         promoted: &'ck IndexSlice<Promoted, Ty>,
     ) -> Result {
         let span = body.span();
+        inherited.mode.start_body(checker_id);
 
         let fn_sig = poly_sig
             .replace_bound_vars(
@@ -2395,6 +2398,14 @@ fn infer_under_mut_ref_hack(rcx: &mut InferCtxt, actuals: &[Ty], fn_sig: &PolyFn
 
 impl Mode for ShapeMode {
     const NAME: &str = "shape";
+
+    fn start_body(&mut self, checker_id: CheckerId) {
+        // A closure or promoted body can be revisited while its parent's loop
+        // shape converges. Its previous join environments refer to the previous
+        // parent scope; recompute them in the current scope instead of joining
+        // environments whose free variables have different meanings.
+        self.bb_envs.remove(&checker_id);
+    }
 
     fn enter_basic_block<'ck, 'genv, 'tcx>(
         ck: &mut Checker<'ck, 'genv, 'tcx, ShapeMode>,
