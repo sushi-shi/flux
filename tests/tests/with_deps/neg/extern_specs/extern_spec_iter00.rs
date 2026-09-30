@@ -14,6 +14,7 @@ struct Iter<'a, T>;
 struct Enumerate<I>;
 
 #[flux_rs::extern_spec(std::iter)]
+#[flux_rs::assoc(fn has_size_model() -> bool { false })]
 #[flux_rs::assoc(fn done(self: Self) -> bool  )]
 #[flux_rs::assoc(fn step(self: Self, other: Self) -> bool )]
 trait Iterator {
@@ -27,6 +28,7 @@ trait Iterator {
 }
 
 #[flux_rs::extern_spec]
+#[flux_rs::assoc(fn has_size_model() -> bool { true })]
 #[flux_rs::assoc(fn done(x: Iter) -> bool { x.idx >= x.len })]
 #[flux_rs::assoc(fn step(x: Iter, y: Iter) -> bool { x.idx + 1 == y.idx && x.len == y.len})]
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -89,6 +91,7 @@ fn test_iter1_neg(slice: &[u8]) {
 }
 
 #[flux_rs::extern_spec(std::iter)]
+#[flux::assoc(fn has_size_model() -> bool { <I as Iterator>::has_size_model() })]
 #[flux::assoc(fn done(x: Enumerate<I>) -> bool { <I as Iterator>::done(x.inner)})]
 #[flux::assoc(fn step(x: Enumerate<I>, y: Enumerate<I>) -> bool { <I as Iterator>::step(x.inner, y.inner)})]
 impl<I: Iterator> Iterator for Enumerate<I> {

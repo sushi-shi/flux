@@ -46,8 +46,8 @@ The initial configuration enables library models, strict arithmetic checking,
 and panic obligations on the host platform with default features. Only library
 targets are run by this harness; binaries, tests, feature combinations, and other
 platforms remain explicit inventory entries, not verified coverage. General
-iterator soundness gaps from the handoff are still open, so an accepted check is
-only an observation under the loaded models, not a correctness certification.
+iterator model assumptions still need auditing, so an accepted check is only an
+observation under the loaded models, not a correctness certification.
 
 A failed obligation is not a confirmed Codex bug. Reproduce a claimed bug through
 the public API. Preserve positive examples and known false claims when adding a
@@ -68,3 +68,23 @@ Run the reporting tests with:
 python3 -m unittest discover -s tools/codex -v
 cargo test -p flux-bin --lib
 ```
+
+## Iterator model prerequisite
+
+Size-based iterator contracts now require `Iterator::has_size_model()`. The
+default is false; reviewed finite models opt in and adapters propagate the
+prerequisite. Generic functions that count an iterator must state this requirement
+explicitly. This prevents an unrefined iterator from inheriting both an unchanged
+unit index and a decreasing remaining size, which previously made false claims
+provable. The regression uses filtered slices with arbitrary, unrelated lengths.
+Infinite iterators cannot satisfy the finite-size requirement either.
+
+`take(n)` still permits bounded iteration over an unknown or infinite iterator:
+its model tracks the remaining bound without claiming an exact inner size or
+inner transition. Reversed integer ranges have size zero, not a negative size.
+
+This is a conservative capability boundary, not a complete iterator model.
+Missing capabilities produce obligations; they are not proof success. A separate
+escaping-bound-variable crash with `filter(...).enumerate()` remains unresolved.
+The false count proof is retained as a negative regression independently of that
+crash. Future models must include counterexamples as well as accepted programs.

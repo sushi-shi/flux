@@ -9,6 +9,9 @@ defs! {
 
 #[extern_spec(core::iter)]
 #[assoc(
+    // Exact remaining-size reasoning requires an explicit model for the impl.
+    // In particular, an unrefined iterator must not inherit a decreasing size.
+    fn has_size_model() -> bool { false }
     fn valid_item(self: Self, item: Self::Item) -> bool { true }
     fn size(self: Self) -> int { default_iterator_size(self) }
     fn done(self: Self) -> bool { default_iterator_done(self) }
@@ -17,6 +20,7 @@ defs! {
 trait Iterator {
     #[spec(
         fn(self: &mut Self[@curr_s]) -> Option<Self::Item>[!<Self as Iterator>::done(curr_s)]
+        requires <Self as Iterator>::has_size_model()
         ensures self: Self[#next_s],
                 <Self as Iterator>::step(curr_s, next_s),
                 if <Self as Iterator>::done(curr_s) {
@@ -43,7 +47,7 @@ trait Iterator {
         Self: Sized,
         F: FnMut(Self::Item) -> B;
 
-    #[spec(fn(Self[@s], n: usize) -> Skip<Self>[max(0, <Self as Iterator>::size(s) - n)])]
+    #[spec(fn(Self[@s], n: usize) -> Skip<Self>[max(0, <Self as Iterator>::size(s) - n)] requires <Self as Iterator>::has_size_model())]
     fn skip(self, n: usize) -> Skip<Self>
     where
         Self: Sized;
@@ -59,13 +63,14 @@ trait Iterator {
         Self: Sized,
         F: FnMut(Self::Item);
 
-    #[spec(fn (Self[@s]) -> B{v: <B as FromIterator<Self::Item>>::with_size(v, <Self as Iterator>::size(s))})]
+    #[spec(fn (Self[@s]) -> B{v: <B as FromIterator<Self::Item>>::with_size(v, <Self as Iterator>::size(s))} requires <Self as Iterator>::has_size_model())]
     fn collect<B: FromIterator<Self::Item>>(self) -> B
     where
         Self: Sized;
 
     /// Core impl: https://github.com/rust-lang/rust/blob/c871d09d1cc32a649f4c5177bb819646260ed120/library/core/src/iter/traits/iterator.rs#L3049
     #[spec(fn(self: &mut Self[@s], P) -> Option<usize{n: n < <Self as Iterator>::size(s)}>
+           requires <Self as Iterator>::has_size_model()
            where P: FnMut(Self::Item) -> bool)]
     fn position<P>(&mut self, predicate: P) -> Option<usize>
     where

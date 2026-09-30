@@ -36,6 +36,7 @@ fn iter_idx<T>(_: &std::slice::Iter<T>) -> usize {
 
 #[flux_rs::spec(
     fn(it: &mut I[@curr_s])
+    requires <I as Iterator>::has_size_model()
     ensures it: I{next_s: <I as Iterator>::step(curr_s, next_s)}
 )]
 fn advance<I: Iterator>(it: &mut I) {

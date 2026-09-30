@@ -14,11 +14,12 @@ struct Take<I>;
 
 #[extern_spec(core::iter)]
 #[assoc(
+    fn has_size_model() -> bool { <I as Iterator>::has_size_model() }
     fn size(x: Take<I>) -> int { min(x.n, <I as Iterator>::size(x.inner)) }
     fn done(x: Take<I>) -> bool { x.n <= 0 || <I as Iterator>::done(x.inner) }
     fn step(x: Take<I>, y: Take<I>) -> bool {
         if x.n > 0 {
-            y.n == x.n - 1 && <I as Iterator>::step(x.inner, y.inner)
+            y.n == x.n - 1 && (<I as Iterator>::has_size_model() => <I as Iterator>::step(x.inner, y.inner))
         } else {
             y.n == x.n && y.inner == x.inner
         }
@@ -26,7 +27,9 @@ struct Take<I>;
 )]
 impl<I: Iterator> Iterator for Take<I> {
     #[spec(
-        fn(self: &mut Self[@curr_s]) -> Option<_>[!<Self as Iterator>::done(curr_s)]
+        fn(self: &mut Self[@curr_s]) -> Option<_>{some:
+            (some => curr_s.n > 0) &&
+            (<I as Iterator>::has_size_model() => some == !<Self as Iterator>::done(curr_s))}
         ensures self: Self{next_s: <Self as Iterator>::step(curr_s, next_s)}
     )]
     fn next(&mut self) -> Option<I::Item>;

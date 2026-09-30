@@ -13,6 +13,7 @@ impl<'a, T> Iter<'a, T> {
 
 #[extern_spec(core::slice)]
 #[assoc(
+    fn has_size_model() -> bool { true }
     fn size(x: Iter) -> int { x.len - x.idx }
     fn done(x: Iter) -> bool { x.idx >= x.len }
     fn step(x: Iter, y: Iter) -> bool {
@@ -51,6 +52,7 @@ struct Windows<'a, T>;
 
 #[extern_spec(core::slice)]
 #[assoc(
+    fn has_size_model() -> bool { true }
     fn size(x: Windows) -> int { if x.window_size > x.remaining { 0 } else { x.remaining - x.window_size + 1 } }
     fn done(x: Windows) -> bool { x.remaining < x.window_size }
     fn step(x: Windows, y: Windows) -> bool {

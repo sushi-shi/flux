@@ -4,10 +4,11 @@ use flux_attrs::*;
 // The below are "default" implementations of the associated refinements
 // for the `Step` trait, that we put in so that types for which no explicit
 // implementation is given can be analyzed without Flux complaining about missing
-// implementations. Note that the implementations are "uninterpreted" to make verification
-// sound. However, you may get "false positives" if you use these defaults.
+// implementations. These uninterpreted defaults do not grant the finite-size
+// capability; size-based contracts additionally require an explicit model.
 
 defs! {
+    use crate::num::max;
     fn default_step_step_forward<T>(start: T, count: int) -> T;
     fn default_step_size<T>(lo: T, hi: T) -> int;
 }
@@ -18,6 +19,7 @@ defs! {
 ///  - `size` computes the number of steps needed to go from `lo` to `hi
 #[extern_spec(core::iter)]
 #[assoc(
+    fn has_size_model() -> bool { false }
     fn step_forward(start: Self, count: int) -> Self {
         default_step_step_forward(start, count)
     }
@@ -29,20 +31,23 @@ trait Step {}
 
 #[extern_spec(core::iter)]
 #[assoc(
+    fn has_size_model() -> bool { true }
     fn step_forward(start: int, count: int) -> int { start + count }
-    fn size(lo: int, hi: int) -> int { hi - lo }
+    fn size(lo: int, hi: int) -> int { max(0, hi - lo) }
 )]
 impl Step for usize {}
 
 #[extern_spec(core::iter)]
 #[assoc(
+    fn has_size_model() -> bool { true }
     fn step_forward(start: int, count: int) -> int { start + count }
-    fn size(lo: int, hi: int) -> int { hi - lo }
+    fn size(lo: int, hi: int) -> int { max(0, hi - lo) }
 )]
 impl Step for i32 {}
 
 #[extern_spec(core::ops)]
 #[assoc(
+    fn has_size_model() -> bool { <A as Step>::has_size_model() }
     fn valid_item(self: Range<A>, item: A) -> bool { self.start <= item && item < self.end }
     fn size(self: Range<A>) -> int { <A as Step>::size(self.start, self.end) }
     fn done(self: Range<A>) -> bool { <A as Step>::size(self.start, self.end) <= 0 }

@@ -17,6 +17,7 @@ struct Chars<'a>;
 
 #[extern_spec(core::str)]
 #[assoc(
+    fn has_size_model() -> bool { true }
     fn size(x: Chars) -> int { x.size }
     fn done(x: Chars) -> bool { x.size <= 0 }
     fn step(x: Chars, y: Chars) -> bool {
@@ -38,6 +39,7 @@ struct CharIndices<'a>;
 
 #[extern_spec(core::str)]
 #[assoc(
+    fn has_size_model() -> bool { true }
     fn size(x: CharIndices) -> int { x.size }
     fn done(x: CharIndices) -> bool { x.size <= 0 }
     fn step(x: CharIndices, y: CharIndices) -> bool {
@@ -59,6 +61,7 @@ struct Lines<'a>;
 
 #[extern_spec(core::str)]
 #[assoc(
+    fn has_size_model() -> bool { true }
     fn size(x: Lines) -> int { x.size }
     fn done(x: Lines) -> bool { x.size <= 0 }
     fn step(x: Lines, y: Lines) -> bool {

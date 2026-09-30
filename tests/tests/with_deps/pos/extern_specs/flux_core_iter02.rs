@@ -20,7 +20,7 @@ fn fake_next<I: Iterator>(iter: &mut I) -> Option<I::Item> {
     iter.next()
 }
 
-#[spec(fn(iter: I[@s], upper: usize) requires <I as Iterator>::size(s) <= upper)]
+#[spec(fn(iter: I[@s], upper: usize) requires <I as Iterator>::has_size_model() && <I as Iterator>::size(s) <= upper)]
 pub fn loop_fake_next<I: Iterator<Item = bool>>(mut iter: I, upper: usize) {
     let mut i = 0;
     while let Some(_) = fake_next(&mut iter) {
@@ -29,7 +29,7 @@ pub fn loop_fake_next<I: Iterator<Item = bool>>(mut iter: I, upper: usize) {
     }
 }
 
-#[spec(fn(iter: I[@s], upper: usize) requires <I as Iterator>::size(s) <= upper)]
+#[spec(fn(iter: I[@s], upper: usize) requires <I as Iterator>::has_size_model() && <I as Iterator>::size(s) <= upper)]
 pub fn loop_next<I: Iterator<Item = bool>>(mut iter: I, upper: usize) {
     let mut i = 0;
     while let Some(_) = iter.next() {
@@ -38,7 +38,7 @@ pub fn loop_next<I: Iterator<Item = bool>>(mut iter: I, upper: usize) {
     }
 }
 
-#[spec(fn(iter: I[@s], upper: usize) requires <I as Iterator>::size(s) <= upper)]
+#[spec(fn(iter: I[@s], upper: usize) requires <I as Iterator>::has_size_model() && <I as Iterator>::size(s) <= upper)]
 pub fn loop_enumerate<I: Iterator<Item = bool>>(mut iter: I, upper: usize) {
     for (i, _) in iter.enumerate() {
         flux_rs::assert(i < upper);

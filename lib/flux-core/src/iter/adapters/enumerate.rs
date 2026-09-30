@@ -6,6 +6,7 @@ struct Enumerate<I>;
 
 #[extern_spec(core::iter)]
 #[assoc(
+    fn has_size_model() -> bool { <I as Iterator>::has_size_model() }
     fn size(x: Enumerate<I>) -> int { <I as Iterator>::size(x.inner) }
     fn done(x: Enumerate<I>) -> bool { <I as Iterator>::done(x.inner) }
     fn step(x: Enumerate<I>, y: Enumerate<I>) -> bool {
@@ -14,6 +15,7 @@ struct Enumerate<I>;
 )]
 impl<I: Iterator> Iterator for Enumerate<I> {
     #[spec(fn(self: &mut Enumerate<I>[@curr_s]) -> Option<(usize[curr_s.idx], _)>[!<I as Iterator>::done(curr_s.inner)]
+           requires <I as Iterator>::has_size_model()
            ensures self: Enumerate<I>[#next_s],
                    curr_s.idx + 1 == next_s.idx,
                    <I as Iterator>::step(curr_s.inner, next_s.inner),
