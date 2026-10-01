@@ -5,8 +5,8 @@ The user requested a deliberate stop after completing the current change, preser
 ## Repositories and stacks
 
 - Flux: `https://github.com/sushi-shi/flux`, branch `feat/string-slice-drain`, draft [PR #30](https://github.com/sushi-shi/flux/pull/30), based on `feat/string-field-boundaries` ([#29](https://github.com/sushi-shi/flux/pull/29)). The tested compiler/model commit is `ef5241b9501554f1f4d95a676bdb0e3d4495f898`; later commits on this branch only document the checkpoint.
-- Codex: `https://github.com/sushi-shi/codex`, branch `spec/flux-parser-slices`, based on `spec/flux-parser-positions` ([#18](https://github.com/sushi-shi/codex/pull/18)). The new branch adds a verified suffix-start boundary contract and the evidence/handoff. Check `tools/flux/parser-slices.json` for exact revisions and results.
-- Intended durable local checkouts after cleanup: `/home/sheep/Projects/flux` and `/home/sheep/Projects/codex-flux`. The original `/home/sheep/Projects/codex` contains unrelated untracked planning files and is preserved. Flowistry is a separate project; its worktrees and changes are preserved.
+- Codex: `https://github.com/sushi-shi/codex`, branch `spec/flux-parser-slices`, draft [PR #19](https://github.com/sushi-shi/codex/pull/19), based on `spec/flux-parser-positions` ([#18](https://github.com/sushi-shi/codex/pull/18)). The new branch adds a verified suffix-start boundary contract and the evidence/handoff. Check `tools/flux/parser-slices.json` for exact revisions and results.
+- Retained local checkouts: `/home/sheep/Projects/flux` and `/home/sheep/Projects/codex-flux`. The original `/home/sheep/Projects/codex` contains unrelated untracked planning files and is preserved. Flowistry is a separate project; its worktrees and changes are preserved.
 - Both forks contain the prior stacked draft PRs. Continue stacking on the current branches; do not merge or rewrite published history. Sending anything upstream to OpenAI still requires a separate instruction.
 
 ## Working policy
@@ -74,3 +74,7 @@ To investigate the next obligations, select `def:InlineHiddenTagParser::<T>::dra
 For native Codex checks use the repository's `just fmt` and `just test`, with `just`, `cargo-nextest`, `uv`, `dotslash` and `patchelf` available through the pinned Nix environment. Do not invoke `cargo test` directly in Codex. A full Codex test suite still needs user approval. Dependency changes require `just bazel-lock-update`; this last Codex change does not change dependencies.
 
 The older `HANDOFF.md` records the initial experiment and historical findings. Its dated open-issue statuses do not supersede this checkpoint or the current evidence.
+
+## Completed cleanup
+
+The [cleanup record](CLEANUP.json) lists the removed paths and the pushed heads verified before deletion. Eight build-target directories (roughly 82 GB), two target symlinks, two redundant Flux worktrees, two baseline Codex clones, and the stale generated Flux sysroot were removed. Both retained repositories are clean and pushed. The relocated Codex repository passed a Git connectivity check after its former object sources were removed. No verifier or native-test process remains running.

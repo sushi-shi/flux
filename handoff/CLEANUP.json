@@ -1,0 +1,82 @@
+{
+  "started": 1790887190.4120455,
+  "actions": [
+    {
+      "kind": "removed build target",
+      "path": "/home/sheep/Projects/flux/target"
+    },
+    {
+      "kind": "removed target symlink",
+      "path": "/tmp/flux-implementation/target"
+    },
+    {
+      "kind": "removed target symlink",
+      "path": "/tmp/flux-readable-syntax/target"
+    },
+    {
+      "kind": "removed build target",
+      "path": "/tmp/flux-codex-contracts/codex-rs/target"
+    },
+    {
+      "kind": "removed build target",
+      "path": "/tmp/flux-codex-mapped/codex-rs/target"
+    },
+    {
+      "kind": "removed build target",
+      "path": "/tmp/codex-attributes-baseline/codex-rs/target"
+    },
+    {
+      "kind": "removed build target",
+      "path": "/tmp/flux-codex-results/target"
+    },
+    {
+      "kind": "removed build target",
+      "path": "/tmp/flux-codex-results/split-string-first-pass-experiment/target"
+    },
+    {
+      "kind": "removed build target",
+      "path": "/tmp/flux-codex-results/incremental-budget-benchmark/target"
+    },
+    {
+      "kind": "removed build target",
+      "path": "/tmp/flux-codex-results/incremental-budget-review/target"
+    },
+    {
+      "kind": "removed clean backed-up worktree",
+      "path": "/tmp/flux-readable-syntax"
+    },
+    {
+      "kind": "removed clean backed-up worktree",
+      "path": "/tmp/flux-implementation"
+    },
+    {
+      "kind": "removed clean backed-up baseline clone",
+      "path": "/tmp/flux-codex-mapped"
+    },
+    {
+      "kind": "removed clean backed-up baseline clone",
+      "path": "/tmp/codex-attributes-baseline"
+    },
+    {
+      "kind": "removed stale generated sysroot",
+      "path": "/home/sheep/Projects/flux/sysroot"
+    },
+    {
+      "kind": "selected final Flux checkpoint",
+      "path": "/home/sheep/Projects/flux"
+    },
+    {
+      "kind": "moved independent Codex checkpoint",
+      "path": "/home/sheep/Projects/codex-flux"
+    }
+  ],
+  "heads": {
+    "/tmp/flux-implementation": "0646f98cb098e386a149ec056fccc5bbd70e386f",
+    "/tmp/flux-codex-contracts": "cd94a053002daae72938d62e875cdb9c3e3426b1"
+  },
+  "finished": 1790887203.9501398,
+  "retained": [
+    "/home/sheep/Projects/flux",
+    "/home/sheep/Projects/codex-flux"
+  ]
+}
