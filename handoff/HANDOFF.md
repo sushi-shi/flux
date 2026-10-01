@@ -160,15 +160,28 @@ program panics".
    the aggregate's refinement fields use the same names and are tied to its Rust fields.
    Mutable receivers/parameters, `old(expr)`, pure `if/else`, standard Result discriminants,
    and Vec lengths are supported. Preservation of mutable fields must be stated explicitly.
-   `#[refined]` now infers a nongeneric named struct's refinement record and field connections
-   from scalar, named refined, Vec, and BTreeMap fields. Container equality compares the
+   `#[refined]` now infers a named struct's refinement record and field connections
+   from scalar, named refined, Vec, and BTreeMap fields. Generic structs explicitly select
+   their modeled fields, e.g. `#[refined(pending_utf8)]`; unselected payloads stay opaque.
+   Generic functions and by-value receivers are supported when their contract types can
+   be modeled. Vec field `len()`/`is_empty()` calls also check the actual Rust receiver type,
+   so same-named user methods cannot acquire Vec semantics. Container equality compares the
    modeled properties only, not complete Rust contents. Native builds erase the attributes.
    Codex uses the macros through `flux_core` under `cfg_attr(flux, ...)`; removing those wrappers
    still needs ordinary-build dependency integration. Payload bindings/guards, nested patterns,
-   indexing definedness, generic/async functions, const-fn
+   indexing definedness, async functions, const-fn
    reflection and dedicated proof blocks remain open. Do not treat this first subset as completion
    of the syntax examples in SPECIFICATION.md.
    The relay buffer case uses a weighted BTreeMap model to connect its byte counter to stored
    Vec lengths. See [collection model audit](COLLECTION-MODELS.md) for assumptions and limits.
+   The UTF-8 parser uses the same short imported macros and ordinary Rust functions as
+   lemmas. `#[may_panic]` explicitly limits its state guarantees to normal returns, including
+   returned errors; functional and strict-overflow obligations remain checked. Recovery through
+   `std::panic::catch_unwind` is rejected, including function-pointer coercion and checks without
+   standard models, until exceptional state transitions are modeled. The corresponding native
+   regression demonstrates why normal-return invariants cannot be reused after unwinding.
+   Struct invariants still use raw Flux model projections (`pending_utf8.len`), and `cfg_attr`
+   wrappers remain in ordinary Codex code: these are remaining readability gaps, not the intended
+   final surface. Keep adding Rust-shaped forms as real application contracts require them.
 8. **Performance.** Keep one solver process running instead of starting one per function. Measure
    `-Fcache` (per-function query cache) and parallel checking of functions.

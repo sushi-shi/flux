@@ -1542,9 +1542,19 @@ fn mk_crate_mapping(tcx: TyCtxt) -> UnordMap<Symbol, DefId> {
     let mut map = UnordMap::default();
     for cnum in tcx.crates(()) {
         let name = tcx.crate_name(*cnum);
-        if let Some(extern_crate) = tcx.extern_crate(*cnum)
-            && extern_crate.is_direct()
-        {
+        let direct = tcx
+            .extern_crate(*cnum)
+            .is_some_and(|krate| krate.is_direct());
+        // Automatically loaded model crates can be referenced only by a
+        // refinement expression. Rust then has no ordinary use that would
+        // mark the crate direct. Keep forced externs visible to Flux too.
+        let forced = tcx
+            .sess
+            .opts
+            .externs
+            .iter()
+            .any(|(extern_name, entry)| entry.force && extern_name.as_str() == name.as_str());
+        if direct || forced {
             map.insert(name, cnum.as_def_id());
         }
     }

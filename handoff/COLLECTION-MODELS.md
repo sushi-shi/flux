@@ -1,4 +1,4 @@
-# Collection models exercised by the Codex relay
+# Collection models exercised by the Codex relay and UTF-8 parser
 
 The model was audited against pinned Rust `8925ea358a0f` (nightly 2026-08-21).
 External specifications are trusted assumptions, not proofs of the standard library.
@@ -42,3 +42,45 @@ container types. Ordinary builds erase it and preserve the Rust representation.
 An abandoned per-instance predicate-weight constructor prototype triggered a checker panic
 in fixpoint encoding (`unexpected $k4(a0.0, a1)`). The type-defined measure avoids that path;
 it does not fix or establish support for output-only higher-order predicate inference.
+
+## UTF-8 stream state
+
+`core::str::from_utf8` preserves byte length on success. Its error has a valid prefix
+strictly shorter than the input; a known invalid sequence occupies one to three bytes
+within the input, and an incomplete suffix occupies one to three bytes. Empty input
+succeeds. These facts follow `core/src/str/{converts,error,validations}.rs` at the same
+pinned Rust revision. The model does not describe byte contents. Native checks cover
+all one- and two-byte inputs, every Unicode scalar's UTF-8 prefixes, and selected longer
+invalid sequences; these execution checks supplement the audit rather than prove it.
+
+Byte Vec `clear`, `truncate`, and `extend_from_slice` have length postconditions.
+The last operation requires the byte-copy capability, and clear/truncate gain their
+non-panicking destructor guarantee only for bytes. Unknown Clone/Drop implementations
+do not gain it. Extending without panic additionally needs Global allocation and the
+conservative doubled-growth bound `max(8, 2 * new_len) <= isize::MAX`. The actual parser
+permits panics instead of imposing an artificial small-chunk precondition.
+
+Prefix `drain(..end)` requires `end <= old_len` and leaves length at most `old_len - end`.
+This is deliberately an upper bound: forgetting the iterator can leave length zero;
+normal Drop restores the tail. `Drain::keep_rest` is rejected because it can restore
+removed elements and requires a model connecting the iterator with its owner. Other
+range implementations default to disabled. Native checks cover normal Drop, partial
+iteration, and forgetting. Indexing retains the sealed SliceIndex bounds obligations.
+
+The readable field-length frontend uses a Rust type witness restricted to the canonical
+Vec type. A typed logical helper alone was insufficient because single-field refinement
+records can coerce through their scalar component. The witness prevents fake containers
+with a custom `len()` method from receiving these trusted semantics.
+
+The parser's normal-return contracts bound the pending length, preserve it on error,
+and empty it after successful finishing. Two checked lemmas exercise construction and
+repeated errors. They do not prove buffer content, callback history, or arbitrary
+dependency bodies. The native parser test independently checks exact contents and
+rollback for all 1,024 chunk partitions of `Aé中🦀Z`.
+
+A caught callback panic can expose six buffered bytes, violating the normal-return
+three-byte invariant. A minimized Flux example initially accepted a false postcondition
+after `catch_unwind`. The checker now inserts an unsatisfiable precondition at that
+standard boundary, even without model crates and when reified to a function pointer.
+This is fail-closed handling of an unsupported boundary, not an unwind proof. Other
+recovery/concurrency mechanisms and general destructor effects remain outside this result.

@@ -4,14 +4,36 @@ use attr_dummy as attr_impl;
 use attr_sysroot as attr_impl;
 use proc_macro::TokenStream;
 
+/// Permit panics while continuing to check functional contracts and invariants
+/// on normal return. This does not suppress overflow checks or trust the body.
+/// Use for APIs whose callbacks or allocation sizes can legitimately panic.
+#[proc_macro_attribute]
+pub fn may_panic(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    if !attr.is_empty() {
+        return "compile_error!(\"may_panic takes no arguments\");"
+            .parse()
+            .unwrap();
+    }
+    #[cfg(flux_sysroot)]
+    {
+        flux_attrs_impl::may_panic(tokens.into()).into()
+    }
+    #[cfg(not(flux_sysroot))]
+    {
+        tokens
+    }
+}
+
 /// Infer a named struct's refinement record and field connections from its Rust types.
 ///
-/// Supports nongeneric structs with scalar fields, named refined types, and
+/// Supports named structs with scalar fields, named refined types, and
 /// standard default-allocator Vec and BTreeMap models (requires std).
 /// Invariants use the field names. Container models describe only their modeled
 /// properties, not full contents; equality of models is not content equality.
 /// Unsupported field types are errors during verification. Native builds erase
 /// the attribute and preserve the original struct and its layout.
+/// Generic structs select modeled fields explicitly: `#[refined(buffer, count)]`.
+/// Other fields remain opaque and are not silently assumed preserved.
 #[proc_macro_attribute]
 pub fn refined(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     #[cfg(flux_sysroot)]
@@ -41,7 +63,9 @@ pub fn refined(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// must connect those same names to the corresponding Rust fields.
 ///
 /// Unsupported operations (including indexing, payload patterns, mutation,
-/// arbitrary calls, and async/generic signatures) are rejected during checking.
+/// arbitrary calls, and async signatures) are rejected during checking.
+/// Generic payloads absent from the conditions remain opaque. Vec-valued field
+/// len/is_empty calls use a typed standard Vec model; other field methods fail.
 /// Outside Flux these attributes are erased without executing their expressions.
 #[proc_macro_attribute]
 pub fn requires(attr: TokenStream, tokens: TokenStream) -> TokenStream {

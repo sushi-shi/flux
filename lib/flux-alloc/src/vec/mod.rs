@@ -1,10 +1,20 @@
+// Typed projection used by readable contracts on Vec-valued struct fields.
+#![cfg_attr(flux, flux::defs { fn model_len(value: Vec) -> int { value.len } })]
+
 use std::{
     alloc::{Allocator, Global},
-    ops::{Deref, DerefMut, Index, IndexMut},
+    ops::{Deref, DerefMut, Index, IndexMut, RangeBounds},
     slice::SliceIndex,
+    vec::Drain,
 };
 
 use flux_attrs::*;
+
+mod mutation;
+#[allow(unused_imports)]
+use mutation::ByteElement;
+
+defs! { use flux_core::num::min; }
 
 //---------------------------------------------------------------------------------------
 #[extern_spec]
@@ -36,6 +46,29 @@ impl<T, A: Allocator> Vec<T, A> {
 
 #[extern_spec]
 impl<T, A: Allocator> Vec<T, A> {
+    #[no_panic_if(<T as ByteElement>::byte_copy())]
+    #[spec(fn(self: &mut Vec<T, A>[@n]) ensures self: Vec<T, A>[0])]
+    fn clear(&mut self);
+
+    #[no_panic_if(<T as ByteElement>::byte_copy())]
+    #[spec(fn(self: &mut Vec<T, A>[@n], len: usize)
+        ensures self: Vec<T, A>[min(n, len)])]
+    fn truncate(&mut self, len: usize);
+
+    // The immediate length is start; normal Drop restores start + tail.
+    // Forgetting or partly consuming the iterator therefore preserves this
+    // interval too. keep_rest is explicitly unsupported below.
+    #[no_panic_if(<R as RangeBounds<usize>>::modeled_prefix())]
+    #[spec(fn(self: &mut Vec<T, A>[@n], R[@r]) -> Drain<T, A>
+        requires <R as RangeBounds<usize>>::modeled_prefix()
+            && 0 <= <R as RangeBounds<usize>>::prefix_end(r)
+            && <R as RangeBounds<usize>>::prefix_end(r) <= n
+        ensures self: Vec<T, A>{remaining: 0 <= remaining &&
+            remaining <= n - <R as RangeBounds<usize>>::prefix_end(r)})]
+    fn drain<R>(&mut self, range: R) -> Drain<'_, T, A>
+    where
+        R: RangeBounds<usize>;
+
     #[spec(fn(&Vec<T, A>[@n]) -> usize[n])]
     fn len(v: &Vec<T, A>) -> usize;
 
@@ -56,6 +89,7 @@ impl<T: Clone, A: Allocator + Clone> Clone for Vec<T, A> {
 
 #[extern_spec]
 impl<T, I: SliceIndex<[T]>, A: Allocator> Index<I> for Vec<T, A> {
+    #[no_panic]
     #[assume_parametric(T)]
     #[spec(fn(&Vec<T, A>[@len], {I[@idx] | <I as SliceIndex<[T]>>::in_bounds(idx, len)}) -> _)]
     fn index(z: &Vec<T, A>, index: I) -> &<I as SliceIndex<[T]>>::Output;

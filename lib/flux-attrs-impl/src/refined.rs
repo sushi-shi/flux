@@ -2,17 +2,18 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Fields, ItemStruct, Type, parse_quote, spanned::Spanned};
+use syn::{
+    Fields, Ident, ItemStruct, Token, Type, parse::Parser, parse_quote, punctuated::Punctuated,
+    spanned::Spanned,
+};
 
 pub fn expand(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
-    if !attr.is_empty() {
-        return Err(syn::Error::new_spanned(attr, "refined takes no arguments"));
-    }
+    let selected = Punctuated::<Ident, Token![,]>::parse_terminated.parse2(attr)?;
     let mut item: ItemStruct = syn::parse2(item)?;
-    if !item.generics.params.is_empty() {
+    if !item.generics.params.is_empty() && selected.is_empty() {
         return Err(syn::Error::new(
             item.generics.span(),
-            "refined does not yet support generic structs",
+            "generic structs require an explicit refined(field, ...) selection",
         ));
     }
     if item.attrs.iter().any(|attr| {
@@ -27,6 +28,17 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> 
         return Err(syn::Error::new(item.span(), "refined requires named fields"));
     };
     let mut indices = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for name in &selected {
+        if !seen.insert(name.to_string())
+            || !fields
+                .named
+                .iter()
+                .any(|field| field.ident.as_ref() == Some(name))
+        {
+            return Err(syn::Error::new(name.span(), "duplicate or unknown refined field"));
+        }
+    }
     for field in &mut fields.named {
         if field.attrs.iter().any(|attr| {
             attr.path()
@@ -40,6 +52,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> 
             ));
         }
         let name = field.ident.as_ref().unwrap();
+        if !selected.is_empty() && !seen.contains(&name.to_string()) {
+            continue;
+        }
         let (sort, ty) = field_model(&field.ty)?;
         indices.push(quote!(#name: #sort));
         field
