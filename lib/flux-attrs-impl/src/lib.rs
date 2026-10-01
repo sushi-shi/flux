@@ -1,5 +1,10 @@
 mod ast;
+mod contracts;
 mod extern_spec;
+
+pub fn contract(name: &str, attr: TokenStream, item: TokenStream) -> TokenStream {
+    contracts::expand(name, attr, item).unwrap_or_else(|err| err.to_compile_error())
+}
 
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, format_ident, quote, quote_spanned};

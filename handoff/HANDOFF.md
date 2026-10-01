@@ -150,8 +150,17 @@ program panics".
    measure crashes and unsupported features on async-heavy Codex crates: `tokio::spawn`/`JoinHandle`,
    `select!`, boxed `dyn Future`, async trait methods. A type-level invariant on `Mutex<T>` acts as a
    lock invariant; facts relating state across tasks are out of scope for refinement types.
-7. **Readable front end.** Translate `#[requires]`/`#[ensures]` with Rust expressions and `matches!` into
-   Flux's current specs, generating enum tags automatically. Then add const-fn reflection, which needs
-   checker work, plus proof blocks at call sites and a report of every `trusted` item.
+7. **Readable front end (partially implemented).** `flux_attrs::{requires, ensures}` now lower
+   separate conditions to a single checked signature. They support scalar parameters, immutable
+   strings/slices, `result`, length/emptiness, string prefix/suffix predicates, and qualified
+   payload-free `matches!` alternatives on reflected enums. Arithmetic uses mathematical integers;
+   division/remainder currently require a positive literal divisor. Stacked conditions are all
+   checked, and unsupported expressions fail explicitly. Slice equality is rejected because the
+   current slice model tracks length, not contents. Native builds erase the attributes.
+   Codex uses the macros through `flux_core` under `cfg_attr(flux, ...)`; removing those wrappers
+   still needs ordinary-build dependency integration. Payload bindings/guards, nested patterns,
+   indexing definedness, generic/async functions, method receivers, field projections, const-fn
+   reflection and dedicated proof blocks remain open. Do not treat this first subset as completion
+   of the syntax examples in SPECIFICATION.md.
 8. **Performance.** Keep one solver process running instead of starting one per function. Measure
    `-Fcache` (per-function query cache) and parallel checking of functions.
