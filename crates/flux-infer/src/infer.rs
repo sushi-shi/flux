@@ -881,7 +881,19 @@ impl<'a, E: LocEnv> Sub<'a, E> {
                 Ok(())
             }
             (_, TyKind::Uninit) => Ok(()),
-            (TyKind::Downcast(.., fields_a), TyKind::Downcast(.., fields_b)) => {
+            (
+                TyKind::Downcast(adt_a, _, parent_a, variant_a, fields_a),
+                TyKind::Downcast(adt_b, _, parent_b, variant_b, fields_b),
+            ) => {
+                debug_assert_eq!(adt_a, adt_b);
+                debug_assert_eq!(variant_a, variant_b);
+                // Weak-reference folding recovers this saved parent type.
+                // Its generalized index must be established on incoming edges,
+                // not assumed merely because the unpacked fields subtype.
+                self.tys(infcx, parent_a, parent_b)?;
+                // The separate generic arguments are constructor templates,
+                // not logical facts. Their holes are instantiated and checked
+                // against the fields by check_constructor when folding.
                 debug_assert_eq!(fields_a.len(), fields_b.len());
                 for (ty_a, ty_b) in iter::zip(fields_a, fields_b) {
                     self.tys(infcx, ty_a, ty_b)?;

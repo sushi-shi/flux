@@ -23,7 +23,10 @@ use flux_middle::{
         INNERMOST, Lambda, List, Loc, Mutability, Path, PtrKind, Region, SortCtor, SubsetTy,
         SubsetTyCtor, Ty, TyKind, VariantIdx,
         canonicalize::{Hoister, LocalHoister},
-        fold::{FallibleTypeFolder, TypeFoldable, TypeVisitable, TypeVisitor},
+        fold::{
+            FallibleTypeFolder, TypeFoldable, TypeFolder, TypeSuperFoldable, TypeVisitable,
+            TypeVisitor,
+        },
         region_matching::{rty_match_regions, ty_match_regions},
     },
 };
@@ -294,6 +297,20 @@ impl<'a> TypeEnv<'a> {
         bb_env: &BasicBlockEnv,
         target: BasicBlock,
     ) -> InferResult {
+        // Flattening leaves downcasts intact to check their saved parent.
+        // Borrowed fields inside them still need their blocked bounds checked,
+        // just as individually flattened fields did. This only removes the
+        // bookkeeping wrapper; it does not assume or discard the bound.
+        struct UnblockBounds;
+        impl TypeFolder for UnblockBounds {
+            fn fold_ty(&mut self, ty: &Ty) -> Ty {
+                match ty.kind() {
+                    TyKind::Blocked(bound) => bound.fold_with(self),
+                    _ => ty.super_fold_with(self),
+                }
+            }
+        }
+
         infcx.ensure_resolved_evars(|infcx| {
             let bb_env = bb_env
                 .data
@@ -308,7 +325,11 @@ impl<'a> TypeEnv<'a> {
             let bb_env = bb_env.bindings.flatten();
             for (path, _, ty2) in bb_env {
                 let ty1 = self.bindings.get(&path);
-                infcx.subtyping(&ty1.unblocked(), &ty2.unblocked(), ConstrReason::Goto(target))?;
+                infcx.subtyping(
+                    &ty1.fold_with(&mut UnblockBounds),
+                    &ty2.fold_with(&mut UnblockBounds),
+                    ConstrReason::Goto(target),
+                )?;
             }
             Ok(())
         })
@@ -469,10 +490,16 @@ impl BasicBlockEnvShape {
                 }
             }
             TyKind::Downcast(adt, args, ty, variant, fields) => {
-                debug_assert!(!scope.has_free_vars(args));
-                debug_assert!(!scope.has_free_vars(ty));
+                let args = args
+                    .iter()
+                    .map(|arg| Self::pack_generic_arg(scope, arg))
+                    .collect();
+                // A mutable-reference call can unpack a fresh parent index in
+                // only one predecessor. Generalize that saved type along with
+                // the fields before carrying it across the join.
+                let ty = Self::pack_ty(scope, ty);
                 let fields = fields.iter().map(|ty| Self::pack_ty(scope, ty)).collect();
-                Ty::downcast(adt.clone(), args.clone(), ty.clone(), *variant, fields)
+                Ty::downcast(adt.clone(), args, ty, *variant, fields)
             }
             TyKind::Blocked(ty) => Ty::blocked(BasicBlockEnvShape::pack_ty(scope, ty)),
             // FIXME(nilehmann) [`TyKind::Exists`] could also contain free variables.
@@ -625,14 +652,17 @@ impl BasicBlockEnvShape {
                 TyKind::Downcast(adt2, args2, ty2, variant2, fields2),
             ) => {
                 debug_assert_eq!(adt1, adt2);
-                debug_assert_eq!(args1, args2);
-                debug_assert!(ty1 == ty2 && !self.scope.has_free_vars(ty2));
+                debug_assert_eq!(args1.len(), args2.len());
+                let args = iter::zip(args1, args2)
+                    .map(|(arg1, arg2)| self.join_generic_arg(arg1, arg2))
+                    .collect();
+                let ty = self.join_ty(ty1, ty2);
                 debug_assert_eq!(variant1, variant2);
                 debug_assert_eq!(fields1.len(), fields2.len());
                 let fields = iter::zip(fields1, fields2)
                     .map(|(ty1, ty2)| self.join_ty(ty1, ty2))
                     .collect();
-                Ty::downcast(adt1.clone(), args1.clone(), ty1.clone(), *variant1, fields)
+                Ty::downcast(adt1.clone(), args, ty, *variant1, fields)
             }
             _ => tracked_span_bug!("unexpected types: `{ty1:?}` - `{ty2:?}`"),
         }

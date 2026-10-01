@@ -1807,6 +1807,12 @@ pub enum TyKind {
     /// These only arise when you "narrow" an ADT down to a particular variant;
     /// either EXPLICITLY in a `match-of`, or IMPLICITLY when you access a field
     /// of a struct to "UNPACK" the struct.
+    ///
+    /// The generic arguments are constructor inference templates: their holes
+    /// are instantiated and checked against the fields when strongly folding.
+    /// They are not assumptions and are excluded from ordinary type traversal.
+    /// The saved parent type is recovered when weakly folding; unlike the
+    /// templates, it must be traversed and checked across control-flow joins.
     Downcast(AdtDef, GenericArgs, Ty, VariantIdx, List<Ty>),
     Blocked(Ty),
     /// A type that needs to be inferred by matching the signature against a rust signature.

@@ -776,8 +776,8 @@ impl TypeSuperVisitable for Ty {
                 pred.visit_with(visitor)?;
                 ty.visit_with(visitor)
             }
-            TyKind::Downcast(.., args, _, fields) => {
-                args.visit_with(visitor)?;
+            TyKind::Downcast(_, _, ty, _, fields) => {
+                ty.visit_with(visitor)?;
                 fields.visit_with(visitor)
             }
             TyKind::Blocked(ty) => ty.visit_with(visitor),
@@ -831,7 +831,7 @@ impl TypeSuperFoldable for Ty {
                 Ty::downcast(
                     adt.clone(),
                     args.clone(),
-                    ty.clone(),
+                    ty.try_fold_with(folder)?,
                     *variant,
                     fields.try_fold_with(folder)?,
                 )

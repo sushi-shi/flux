@@ -324,8 +324,10 @@ impl PlacesTree {
             f: &mut impl FnMut(Path, &LocKind, &Ty),
         ) {
             match ty.kind() {
-                TyKind::Downcast(.., fields)
-                | TyKind::Indexed(BaseTy::Tuple(fields), _)
+                // Downcasts retain a saved parent type as well as their fields.
+                // Keep them intact so joins and incoming-edge subtyping visit
+                // that parent instead of silently checking only the leaves.
+                TyKind::Indexed(BaseTy::Tuple(fields), _)
                 | TyKind::Indexed(BaseTy::Closure(_, fields, _, _), _)
                 | TyKind::Indexed(BaseTy::Coroutine(_, _, fields, _), _) => {
                     for (idx, ty) in fields.iter().enumerate() {
