@@ -2,6 +2,14 @@ use core::marker::PointeeSized;
 
 use flux_attrs::*;
 
+#[extern_spec(core::cmp)]
+impl Ordering {
+    // Equal delegates to the callback; the other variants return directly.
+    #[no_panic_if(F::no_panic())]
+    #[spec(fn(Self, F) -> Self)]
+    fn then_with<F: FnOnce() -> Self>(self, f: F) -> Self;
+}
+
 defs! {
     use crate::num::{max, min};
 }

@@ -247,7 +247,25 @@ impl<'genv, 'tcx> Refiner<'genv, 'tcx> {
             ty::TyKind::Ref(r, ty, mutbl) => rty::BaseTy::Ref(*r, ty.refine(self)?, *mutbl),
             ty::TyKind::Float(float_ty) => rty::BaseTy::Float(*float_ty),
             ty::TyKind::Tuple(tys) => {
-                let tys = tys.iter().map(|ty| ty.refine(self)).try_collect()?;
+                // The tuple's value predicate already ranges over its scalar
+                // components. Separate holes for those fields multiply the
+                // same inference obligations through nested callbacks.
+                let tys = tys
+                    .iter()
+                    .map(|ty| {
+                        if matches!(
+                            ty.kind(),
+                            ty::TyKind::Int(_)
+                                | ty::TyKind::Uint(_)
+                                | ty::TyKind::Bool
+                                | ty::TyKind::Char
+                        ) {
+                            ty.refine(&self.as_default())
+                        } else {
+                            ty.refine(self)
+                        }
+                    })
+                    .try_collect()?;
                 rty::BaseTy::Tuple(tys)
             }
             ty::TyKind::Array(ty, len) => rty::BaseTy::Array(ty.refine(self)?, len.clone()),

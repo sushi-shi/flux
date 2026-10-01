@@ -719,6 +719,19 @@ impl<'genv> InferCtxt<'genv, '_> {
                     self.try_equate_inner(s1, s2)?;
                 }
             }
+            (rty::Sort::Func(f1), rty::Sort::Func(f2))
+                if f1.params().len() == 0 && f2.params().len() == 0 =>
+            {
+                let f1 = f1.expect_mono();
+                let f2 = f2.expect_mono();
+                if f1.inputs().len() != f2.inputs().len() {
+                    return None;
+                }
+                for (s1, s2) in iter::zip(f1.inputs(), f2.inputs()) {
+                    self.try_equate(s1, s2)?;
+                }
+                self.try_equate(f1.output(), f2.output())?;
+            }
             (rty::Sort::BitVec(size1), rty::Sort::BitVec(size2)) => {
                 self.try_equate_bv_sizes(*size1, *size2)?;
             }

@@ -9,6 +9,8 @@ use std::str::Chars;
 flux_rs::defs! {
     qualifier SzEqA(iter: int, size: int -> int, i: int, iter0: int) { i + size(iter) == size(iter0) }
     qualifier SzEqB(i: int, iter: int, size: int -> int, iter0: int) { i + size(iter) == size(iter0) }
+    qualifier SzLeA(iter: int, size: int -> int, i: int, iter0: int) { i + size(iter) <= size(iter0) }
+    qualifier SzLeB(i: int, iter: int, size: int -> int, iter0: int) { i + size(iter) <= size(iter0) }
 }
 
 #[spec(fn(it: I[@s]) -> usize[<I as Iterator>::size(s)] requires <I as Iterator>::has_size_model())]
