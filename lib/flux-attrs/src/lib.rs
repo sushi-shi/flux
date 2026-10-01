@@ -88,6 +88,17 @@ pub fn requires(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// to `result`. Unit-returning lemmas may establish
 /// facts about their parameters without mentioning `result`. The lemma body is
 /// checked normally; this attribute never makes the function trusted.
+/// `concat(left, right)` denotes concatenation of two string models, for
+/// example `ensures(buffer.text == concat(old(buffer.text), appended))`.
+///
+/// Standard Option results support `result.is_none_or(|value| predicate)`.
+/// Tuple payloads use destructuring, for example
+/// `result.is_none_or(|(_, index)| index < limit)`. Each conjunct may refer to
+/// one tuple component and function parameters; correlated component predicates
+/// are rejected. None satisfies the payload condition; add `result.is_some()`
+/// when presence is required. Payload predicates must be top-level conjuncts,
+/// not nested inside an alternative or conditional. Their closures are logical
+/// expressions and never execute in a native build.
 #[proc_macro_attribute]
 pub fn ensures(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     attr_impl::contract("ensures", attr, tokens)
