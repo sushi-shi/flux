@@ -20,6 +20,7 @@ defs! {
 #[extern_spec(core::iter)]
 #[assoc(
     fn has_size_model() -> bool { false }
+    fn ordered_no_panic() -> bool { false }
     fn step_forward(start: Self, count: int) -> Self {
         default_step_step_forward(start, count)
     }
@@ -32,6 +33,7 @@ trait Step {}
 #[extern_spec(core::iter)]
 #[assoc(
     fn has_size_model() -> bool { true }
+    fn ordered_no_panic() -> bool { true }
     fn step_forward(start: int, count: int) -> int { start + count }
     fn size(lo: int, hi: int) -> int { max(0, hi - lo) }
 )]
@@ -40,6 +42,7 @@ impl Step for usize {}
 #[extern_spec(core::iter)]
 #[assoc(
     fn has_size_model() -> bool { true }
+    fn ordered_no_panic() -> bool { true }
     fn step_forward(start: int, count: int) -> int { start + count }
     fn size(lo: int, hi: int) -> int { max(0, hi - lo) }
 )]

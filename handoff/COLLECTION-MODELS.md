@@ -84,3 +84,36 @@ after `catch_unwind`. The checker now inserts an unsatisfiable precondition at t
 standard boundary, even without model crates and when reified to a function pointer.
 This is fail-closed handling of an unsupported boundary, not an unwind proof. Other
 recovery/concurrency mechanisms and general destructor effects remain outside this result.
+
+## Concrete inline parser
+
+`RangeInclusive` carries an immutable envelope of the original lower and upper endpoints.
+Forward and backward yielded items stay in that envelope, including the upper endpoint.
+The enabled `Step` capability is restricted to audited usize/i32 implementations; unknown
+implementations remain disabled. The model deliberately grants no exact remaining-size or
+exhaustion facts: endpoints returned by Rust's accessors can change during iteration, and
+must not be identified with these ghost bounds. `Rev::next` delegates modeled backward
+item/transition facts. Generic backwards iteration requires an explicit capability; it
+does not silently inherit a decreasing count. Audit sources are pinned Rust
+`core/src/iter/{range,adapters/rev,traits/double_ended}.rs` and `core/src/ops/range.rs`.
+Native tests mix front/back consumption and include usize::MAX and i32::MIN boundaries.
+
+For `str::ends_with`, only the audited `Pattern for &str` receives a non-panicking
+capability. Predicate patterns remain disabled. No logical matching/content relation is
+assumed: the generic reference-pattern sort currently loses the string value. An attempted
+associated-refinement text projection exposed that mismatch and was removed. This blocks
+propagating suffix matches to buffered-text slice boundaries, rather than inventing the fact.
+
+String's existing text model now supports empty construction, byte length, emptiness,
+clearing, exact dereference, and exact concatenation on normal return from push_str.
+Its byte length is nonnegative and allocation-bounded. Appending does not gain a blanket
+panic-free claim; capacity growth can panic. These models were audited against
+`alloc/src/string.rs` and checked natively with empty, Unicode, and embedded-NUL strings.
+
+The inline parser's finish contract clears pending text and active-tag state, returns one
+extraction iff a tag was active, and returns the entry pending text iff no tag was active.
+Extraction payload contents are not yet modeled. Repeated finishing returns an empty chunk.
+The suffix helper is checked for numerical bounds and a delimiter UTF-8 boundary; maximality
+and the corresponding buffered-text boundary remain open. Native parser tests independently
+check content and repeated finishing across all character-boundary partitions of five
+complete/incomplete-tag inputs. These are distinct from proofs of push_str or the whole crate.

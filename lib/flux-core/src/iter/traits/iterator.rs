@@ -37,6 +37,12 @@ trait Iterator {
     where
         Self: Sized;
 
+    #[no_panic]
+    #[spec(fn(Self[@inner]) -> Rev<Self>[inner])]
+    fn rev(self) -> Rev<Self>
+    where
+        Self: Sized + DoubleEndedIterator;
+
     #[spec(
         fn(Self[@s], f: F) -> Map<Self, F>[s]
         where

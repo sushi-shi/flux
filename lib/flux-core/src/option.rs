@@ -1,3 +1,5 @@
+#![cfg_attr(flux, flux::defs { fn model_is_some(value: Option) -> bool { value.is_some } })]
+
 use flux_attrs::*;
 
 #[extern_spec]

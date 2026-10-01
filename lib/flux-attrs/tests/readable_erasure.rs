@@ -32,3 +32,29 @@ fn state_contracts_do_not_execute_old_or_postconditions() {
     assert_eq!(counter.advance(), Ok(()));
     assert_eq!(counter.next, 1);
 }
+
+trait Flush {
+    #[flux_attrs::may_panic]
+    fn flush(&mut self);
+}
+
+#[flux_attrs::refined(active)]
+struct OptionalState<T> {
+    active: Option<T>,
+}
+
+impl<T> Flush for OptionalState<T> {
+    #[flux_attrs::may_panic]
+    #[ensures(self.active.is_none())]
+    fn flush(&mut self) {
+        self.active.take();
+    }
+}
+
+#[test]
+fn optional_state_and_trait_effects_erase_in_native_builds() {
+    let mut state = OptionalState { active: Some(String::from("payload")) };
+    let erased: &mut dyn Flush = &mut state;
+    erased.flush();
+    assert_eq!(state.active, None);
+}

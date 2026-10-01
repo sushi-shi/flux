@@ -7,6 +7,8 @@ use proc_macro::TokenStream;
 /// Permit panics while continuing to check functional contracts and invariants
 /// on normal return. This does not suppress overflow checks or trust the body.
 /// Use for APIs whose callbacks or allocation sizes can legitimately panic.
+/// On trait method declarations this changes only the panic effect; an existing
+/// explicit refinement signature is preserved.
 #[proc_macro_attribute]
 pub fn may_panic(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     if !attr.is_empty() {
@@ -27,7 +29,8 @@ pub fn may_panic(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// Infer a named struct's refinement record and field connections from its Rust types.
 ///
 /// Supports named structs with scalar fields, named refined types, and
-/// standard default-allocator Vec and BTreeMap models (requires std).
+/// standard Option, default-allocator Vec and BTreeMap models (containers require std
+/// except Option).
 /// Invariants use the field names. Container models describe only their modeled
 /// properties, not full contents; equality of models is not content equality.
 /// Unsupported field types are errors during verification. Native builds erase
@@ -66,6 +69,8 @@ pub fn refined(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// arbitrary calls, and async signatures) are rejected during checking.
 /// Generic payloads absent from the conditions remain opaque. Vec-valued field
 /// len/is_empty calls use a typed standard Vec model; other field methods fail.
+/// Option fields support is_some/is_none with a Rust type witness. String-slice
+/// parameters and results support is_char_boundary(offset).
 /// Outside Flux these attributes are erased without executing their expressions.
 #[proc_macro_attribute]
 pub fn requires(attr: TokenStream, tokens: TokenStream) -> TokenStream {
