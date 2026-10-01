@@ -866,6 +866,17 @@ impl<'a, E: LocEnv> Sub<'a, E> {
                 Ok(())
             }
 
+            (
+                TyKind::Indexed(bty_a @ BaseTy::Tuple(_), idx_a),
+                TyKind::Indexed(bty_b @ BaseTy::Tuple(fields_b), idx_b),
+            ) => {
+                self.btys(infcx, bty_a, bty_b)?;
+                // A moved field has no value in the target environment. Its
+                // unit placeholder must not be compared with the old value.
+                let idx_a = Self::tuple_index_after_moves(idx_a, fields_b);
+                self.idxs_eq(infcx, &idx_a, idx_b);
+                Ok(())
+            }
             (TyKind::Indexed(bty_a, idx_a), TyKind::Indexed(bty_b, idx_b)) => {
                 self.btys(infcx, bty_a, bty_b)?;
                 self.idxs_eq(infcx, idx_a, idx_b);
@@ -1114,6 +1125,33 @@ impl<'a, E: LocEnv> Sub<'a, E> {
             Variance::Contravariant => self.tys(infcx, &ty_b, &ty_a),
             Variance::Bivariant => Ok(()),
         }
+    }
+
+    fn tuple_index_after_moves(idx: &Expr, fields: &[Ty]) -> Expr {
+        Expr::tuple(
+            fields
+                .iter()
+                .enumerate()
+                .map(|(field, ty)| {
+                    let value = Expr::field_proj(
+                        idx,
+                        FieldProj::Tuple { arity: fields.len(), field: field as u32 },
+                    );
+                    let mut ty = ty;
+                    loop {
+                        match ty.kind() {
+                            TyKind::Exists(ctor) => ty = ctor.skip_binder_ref(),
+                            TyKind::Constr(_, inner) | TyKind::Blocked(inner) => ty = inner,
+                            TyKind::Uninit => break Expr::unit(),
+                            TyKind::Indexed(BaseTy::Tuple(fields), _) => {
+                                break Self::tuple_index_after_moves(&value, fields);
+                            }
+                            _ => break value,
+                        }
+                    }
+                })
+                .collect(),
+        )
     }
 
     fn idxs_eq(&mut self, infcx: &mut InferCtxt, a: &Expr, b: &Expr) {

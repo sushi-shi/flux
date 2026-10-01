@@ -608,6 +608,7 @@ impl TypeSuperVisitable for Sort {
             | Sort::Param(_)
             | Sort::Var(_)
             | Sort::Infer(_)
+            | Sort::TypeHole(_)
             | Sort::RawPtr
             | Sort::Err => ControlFlow::Continue(()),
         }
@@ -637,6 +638,7 @@ impl TypeSuperFoldable for Sort {
             | Sort::Param(_)
             | Sort::Var(_)
             | Sort::Infer(_)
+            | Sort::TypeHole(_)
             | Sort::RawPtr
             | Sort::Err => self.clone(),
         };

@@ -324,11 +324,10 @@ impl PlacesTree {
             f: &mut impl FnMut(Path, &LocKind, &Ty),
         ) {
             match ty.kind() {
-                // Downcasts retain a saved parent type as well as their fields.
-                // Keep them intact so joins and incoming-edge subtyping visit
-                // that parent instead of silently checking only the leaves.
-                TyKind::Indexed(BaseTy::Tuple(fields), _)
-                | TyKind::Indexed(BaseTy::Closure(_, fields, _, _), _)
+                // Tuples carry a whole-value index and downcasts retain a
+                // saved parent type. Keep both intact so incoming-edge
+                // subtyping checks those facts as well as their fields.
+                TyKind::Indexed(BaseTy::Closure(_, fields, _, _), _)
                 | TyKind::Indexed(BaseTy::Coroutine(_, _, fields, _), _) => {
                     for (idx, ty) in fields.iter().enumerate() {
                         proj.push(idx.into());
@@ -674,9 +673,9 @@ where
 
     fn field(self, ty: &Ty, f: FieldIdx) -> Ty {
         match ty.kind() {
-            TyKind::Indexed(BaseTy::Tuple(fields), idx) => {
+            TyKind::Indexed(BaseTy::Tuple(fields), _) => {
                 let fields = self.fold_field_at(fields, f);
-                Ty::indexed(BaseTy::Tuple(fields), idx.clone())
+                Ty::tuple(fields)
             }
             TyKind::Indexed(BaseTy::Closure(def_id, upvar_tys, args, no_panic), idx) => {
                 let upvar_tys = self.fold_field_at(upvar_tys, f);
@@ -915,9 +914,7 @@ fn fold(
                 Ok(ty_.clone())
             }
         }
-        TyKind::Indexed(BaseTy::Tuple(fields), idx) => {
-            debug_assert_eq!(idx, &Expr::unit());
-
+        TyKind::Indexed(BaseTy::Tuple(fields), _) => {
             let fields = fields
                 .iter()
                 .map(|ty| fold(bindings, infcx, ty, is_strg))

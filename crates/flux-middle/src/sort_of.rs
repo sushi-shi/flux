@@ -55,9 +55,19 @@ impl GlobalEnv<'_, '_> {
                 }
             }
             ty::TyKind::RawPtr(..) => Some(rty::Sort::RawPtr),
+            ty::TyKind::Tuple(fields) => {
+                let fields = fields
+                    .iter()
+                    .map(|ty| {
+                        Ok(self
+                            .sort_of_rust_ty(def_id, ty)?
+                            .unwrap_or_else(rty::Sort::unit))
+                    })
+                    .collect::<QueryResult<Vec<_>>>()?;
+                Some(rty::Sort::tuple(fields))
+            }
             ty::TyKind::Float(_)
             | ty::TyKind::Ref(..)
-            | ty::TyKind::Tuple(_)
             | ty::TyKind::Array(..)
             | ty::TyKind::Alias(..)
             | ty::TyKind::Never => Some(rty::Sort::unit()),
@@ -98,6 +108,9 @@ impl rty::BaseTy {
             rty::BaseTy::Adt(adt_def, args) => adt_def.sort(args),
             rty::BaseTy::Param(param_ty) => rty::Sort::Param(*param_ty),
             rty::BaseTy::Str => rty::Sort::Str,
+            rty::BaseTy::Tuple(fields) => rty::Sort::tuple(
+                fields.iter().map(rty::Ty::index_sort).collect::<Vec<_>>()
+            ),
             rty::BaseTy::Alias(alias_ty) => {
                 // HACK(nilehmann) The refinement arguments in `alias_ty` should not influence the
                 // sort. However, we must explicitly remove them because they can contain expression
@@ -112,7 +125,6 @@ impl rty::BaseTy {
             | rty::BaseTy::Ref(..)
             | rty::BaseTy::FnPtr(..)
             | rty::BaseTy::FnDef(..)
-            | rty::BaseTy::Tuple(_)
             | rty::BaseTy::Array(_, _)
             | rty::BaseTy::Closure(..)
             | rty::BaseTy::Coroutine(..)

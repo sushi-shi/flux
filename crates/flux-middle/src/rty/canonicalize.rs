@@ -146,6 +146,48 @@ impl<D: HoisterDelegate> Hoister<D> {
     pub fn hoist(&mut self, ty: &Ty) -> Ty {
         ty.fold_with(self)
     }
+
+    // A tuple's value is determined by its fields. Eliminate a redundant
+    // existential for that value before introducing fresh logical variables.
+    fn hoist_tuple_exists(&mut self, ctor: &TyCtor) -> Option<Ty> {
+        if !self.in_tuples || ctor.vars().len() != 1 {
+            return None;
+        }
+        let mut body = ctor.skip_binder_ref();
+        while let TyKind::Constr(_, ty) = body.kind() {
+            body = ty;
+        }
+        let TyKind::Indexed(BaseTy::Tuple(fields), idx) = body.kind() else {
+            return None;
+        };
+        if !idx.is_nu() {
+            return None;
+        }
+        let mut dependent = false;
+        let fields = ctor.rebind(fields.clone()).replace_bound_vars(
+            |_| unreachable!("tuple index binder contains a region"),
+            |_, _, _| {
+                dependent = true;
+                Expr::unit()
+            },
+        );
+        if dependent {
+            return None;
+        }
+        let fields = fields.fold_with(self);
+        let values = fields
+            .iter()
+            .map(Ty::index_expr)
+            .collect::<Option<Vec<_>>>()?;
+        let value = Expr::tuple(values.into());
+        let instantiated = ctor.replace_bound_reft(&value);
+        let mut body = &instantiated;
+        while let TyKind::Constr(pred, ty) = body.kind() {
+            self.delegate.hoist_constr(pred.clone());
+            body = ty;
+        }
+        Some(Ty::indexed(BaseTy::Tuple(fields), value))
+    }
 }
 
 /// Is `ty` of the form `&m (&m ... (&m T))` where `T` is an existentially indexed slice or array?
@@ -168,8 +210,23 @@ fn is_indexed_slice(ty: &Ty) -> bool {
 impl<D: HoisterDelegate> TypeFolder for Hoister<D> {
     fn fold_ty(&mut self, ty: &Ty) -> Ty {
         match ty.kind() {
+            TyKind::Indexed(BaseTy::Tuple(fields), idx) if self.in_tuples => {
+                let fields = fields.fold_with(self);
+                for (field, ty) in fields.iter().enumerate() {
+                    if let Some(value) = ty.index_expr() {
+                        let projection =
+                            super::FieldProj::Tuple { arity: fields.len(), field: field as u32 };
+                        self.delegate
+                            .hoist_constr(Expr::eq(value, Expr::field_proj(idx, projection)));
+                    }
+                }
+                Ty::indexed(BaseTy::Tuple(fields), idx.clone())
+            }
             TyKind::Indexed(bty, idx) => Ty::indexed(bty.fold_with(self), idx.clone()),
             TyKind::Exists(ty_ctor) if self.existentials => {
+                if let Some(ty) = self.hoist_tuple_exists(ty_ctor) {
+                    return ty;
+                }
                 // Avoid hoisting useless parameters for unit sorts. This is important for
                 // canonicalization because we assume mutable references won't be under a
                 // binder after we canonicalize them.
