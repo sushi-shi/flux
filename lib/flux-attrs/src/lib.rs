@@ -4,6 +4,33 @@ use attr_dummy as attr_impl;
 use attr_sysroot as attr_impl;
 use proc_macro::TokenStream;
 
+/// A precondition written with parameter names and Rust-shaped expressions.
+///
+/// Stack with [`ensures`] in either order. The current frontend supports scalar
+/// parameters, reflected payload-free enums, immutable strings and slices;
+/// `len`, `is_empty`, string `starts_with`/`ends_with`, and enum `matches!` patterns.
+/// Arithmetic denotes mathematical integers, as in Flux refinement signatures;
+/// it does not execute Rust arithmetic or wrap at machine bounds. Division and
+/// remainder currently require a positive integer literal divisor.
+///
+/// Unsupported operations (including indexing, payload patterns, mutation,
+/// arbitrary calls, and async/generic signatures) are rejected during checking.
+/// Outside Flux these attributes are erased without executing their expressions.
+#[proc_macro_attribute]
+pub fn requires(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    attr_impl::contract("requires", attr, tokens)
+}
+
+/// A postcondition; `result` refers to the function's returned value.
+///
+/// Parameters refer to their entry values. Unit-returning lemmas may establish
+/// facts about their parameters without mentioning `result`. The lemma body is
+/// checked normally; this attribute never makes the function trusted.
+#[proc_macro_attribute]
+pub fn ensures(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    attr_impl::contract("ensures", attr, tokens)
+}
+
 #[proc_macro_attribute]
 pub fn alias(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     attr_impl::alias(attr, tokens)
@@ -148,6 +175,10 @@ pub fn assume_parametric(attrs: TokenStream, tokens: TokenStream) -> TokenStream
 mod attr_sysroot {
     use super::*;
 
+    pub fn contract(name: &str, attr: TokenStream, item: TokenStream) -> TokenStream {
+        flux_attrs_impl::contract(name, attr.into(), item.into()).into()
+    }
+
     pub fn extern_spec(attr: TokenStream, tokens: TokenStream) -> TokenStream {
         flux_attrs_impl::extern_spec(attr.into(), tokens.into()).into()
     }
@@ -201,6 +232,10 @@ mod attr_sysroot {
 #[cfg(not(flux_sysroot))]
 mod attr_dummy {
     use super::*;
+
+    pub fn contract(_name: &str, _attr: TokenStream, item: TokenStream) -> TokenStream {
+        item
+    }
 
     pub fn refined_by(attr: TokenStream, item: TokenStream) -> TokenStream {
         flux_attrs_impl::refined_by(attr.into(), item.into()).into()

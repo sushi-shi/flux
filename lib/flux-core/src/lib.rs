@@ -9,6 +9,8 @@
 pub mod iter;
 pub mod ops;
 
+pub use flux_attrs::{ensures, requires};
+
 #[cfg(any(flux, doc))]
 pub mod mem;
 
