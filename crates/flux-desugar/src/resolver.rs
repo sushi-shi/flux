@@ -1554,7 +1554,15 @@ fn mk_crate_mapping(tcx: TyCtxt) -> UnordMap<Symbol, DefId> {
             .externs
             .iter()
             .any(|(extern_name, entry)| entry.force && extern_name.as_str() == name.as_str());
-        if direct || forced {
+        // Rust's extern prelude provides core even when ordinary code only
+        // names std. Readable Option models may be its sole explicit use.
+        // Identify the actual core crate through a lang item, not just its name.
+        let core_prelude = name.as_str() == "core"
+            && tcx
+                .lang_items()
+                .sized_trait()
+                .is_some_and(|id| id.krate == *cnum);
+        if direct || forced || core_prelude {
             map.insert(name, cnum.as_def_id());
         }
     }
