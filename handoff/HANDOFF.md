@@ -172,6 +172,10 @@ program panics".
    the caller's `cfg(flux)`, so unchecked dependencies still receive their original Rust items.
    Check both modes with `cargo test -p flux-attrs --test readable_erasure` and
    `FLUX_BUILD_SYSROOT=1 cargo test -p flux-attrs --test readable_erasure`.
+   Loading ordinary erasing macros into a verifier is a configuration error, not a
+   successful check: `RUSTFLAGS='--cfg flux' cargo check -p flux-attrs --test readable_erasure`
+   without `FLUX_BUILD_SYSROOT` must reject their use. Use `cargo flux` to build the right mode.
+   `python3 tools/codex/test_native_attributes.py` checks this and the direct-driver regression.
    Payload bindings/guards, nested patterns,
    indexing definedness, async functions, const-fn
    reflection and dedicated proof blocks remain open. Do not treat this first subset as completion

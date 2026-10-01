@@ -23,7 +23,7 @@ pub fn may_panic(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     }
     #[cfg(not(flux_sysroot))]
     {
-        tokens
+        erase_when_not_checking(tokens)
     }
 }
 
@@ -48,7 +48,7 @@ pub fn refined(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     #[cfg(not(flux_sysroot))]
     {
         let _ = attr;
-        tokens
+        erase_when_not_checking(tokens)
     }
 }
 
@@ -233,6 +233,20 @@ pub fn assume_parametric(attrs: TokenStream, tokens: TokenStream) -> TokenStream
     attr_impl::assume_parametric(attrs, tokens)
 }
 
+#[cfg(not(flux_sysroot))]
+fn erase_when_not_checking(item: TokenStream) -> TokenStream {
+    // A manually invoked driver must not accept contracts erased by an ordinary
+    // Cargo-built macro. cargo-flux rebuilds this crate with FLUX_BUILD_SYSROOT.
+    let mut output: TokenStream = r#"
+        #[cfg(flux)]
+        compile_error!("native Flux attributes cannot be used for verification; use cargo flux or rebuild flux-attrs with FLUX_BUILD_SYSROOT=1");
+    "#
+    .parse()
+    .unwrap();
+    output.extend(item);
+    output
+}
+
 #[cfg(flux_sysroot)]
 fn when_checking(original: TokenStream, checked: TokenStream) -> TokenStream {
     // Cargo shares this host proc-macro between checked and unchecked target
@@ -310,7 +324,7 @@ mod attr_dummy {
     use super::*;
 
     pub fn contract(_name: &str, _attr: TokenStream, item: TokenStream) -> TokenStream {
-        item
+        erase_when_not_checking(item)
     }
 
     pub fn refined_by(attr: TokenStream, item: TokenStream) -> TokenStream {
