@@ -732,16 +732,36 @@ impl<'genv, 'tcx: 'genv, P: ConvPhase<'genv, 'tcx>> ConvCtxt<P> {
         let tcx = self.genv().tcx();
         let predicates = tcx.clauses_of(def_id);
         let unrefined_clauses = predicates.clauses;
+        // An extern method can refine an impl callback bound using the receiver's
+        // current state (e.g. Map::next calls F only on valid iterator items).
+        // Keep exact Rust predicate matching, including bound regions.
+        let inherited_clauses = if def_id.is_extern()
+            && tcx.def_kind(def_id).is_fn_like()
+            && let Some(parent) = predicates.parent
+            && matches!(tcx.def_kind(parent), DefKind::Impl { .. })
+        {
+            tcx.clauses_of(parent).clauses
+        } else {
+            &[]
+        };
 
         // For each *refined clause* at index `j` find a corresponding *unrefined clause* at index
         // `i` and save a mapping `i -> j`.
         let mut map = UnordMap::default();
+        let mut inherited_map = UnordMap::default();
         for (j, clause) in refined_clauses.iter().enumerate() {
             let clause = clause.to_rustc(tcx);
-            let Some((i, _)) = unrefined_clauses.iter().find_position(|it| it.0 == clause) else {
+            let (mapping, index) = if let Some((i, _)) =
+                unrefined_clauses.iter().find_position(|it| it.0 == clause)
+            {
+                (&mut map, i)
+            } else if let Some((i, _)) = inherited_clauses.iter().find_position(|it| it.0 == clause)
+            {
+                (&mut inherited_map, i)
+            } else {
                 self.emit_fail_to_match_predicates(def_id)?;
             };
-            if map.insert(i, j).is_some() {
+            if mapping.insert(index, j).is_some() {
                 self.emit_fail_to_match_predicates(def_id)?;
             }
         }
@@ -764,10 +784,18 @@ impl<'genv, 'tcx: 'genv, P: ConvPhase<'genv, 'tcx>> ConvCtxt<P> {
             };
             clauses.push(clause);
         }
+        let mut parent_overrides = vec![];
+        for i in 0..inherited_clauses.len() {
+            if let Some(j) = inherited_map.get(&i) {
+                clauses.push(refined_clauses[*j].clone());
+                parent_overrides.push(i);
+            }
+        }
 
         Ok(rty::GenericPredicates {
             parent: predicates.parent,
             predicates: List::from_vec(clauses),
+            parent_overrides,
         })
     }
 

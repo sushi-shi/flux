@@ -463,6 +463,7 @@ impl Refine for ty::GenericPredicates {
         Ok(rty::GenericPredicates {
             parent: self.parent,
             predicates: refiner.refine(&self.predicates)?,
+            parent_overrides: vec![],
         })
     }
 }

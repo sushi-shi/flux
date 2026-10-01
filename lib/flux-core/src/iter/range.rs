@@ -54,6 +54,14 @@ impl Step for i32 {}
     fn valid_item(self: Range<A>, item: A) -> bool { self.start <= item && item < self.end }
     fn size(self: Range<A>) -> int { <A as Step>::size(self.start, self.end) }
     fn done(self: Range<A>) -> bool { <A as Step>::size(self.start, self.end) <= 0 }
+    fn step(before: Range<A>, after: Range<A>) -> bool {
+        after.end == before.end &&
+        after.start == if before.start < before.end {
+            <A as Step>::step_forward(before.start, 1)
+        } else {
+            before.start
+        }
+    }
 )]
 impl<A: Step> Iterator for ops::Range<A> {
     #[spec(

@@ -962,11 +962,8 @@ impl<'ck, 'genv, 'tcx, M: Mode> Checker<'ck, 'genv, 'tcx, M> {
         // considered: a trait parent's clauses are its supertraits (e.g. `Self: FnMut` on `Fn`),
         // not bounds on the call's arguments.
         if let Some(callee_def_id) = callee_def_id {
-            let parent = genv
-                .predicates_of(callee_def_id)
-                .with_span(span)?
-                .skip_binder_ref()
-                .parent;
+            let predicates = genv.predicates_of(callee_def_id).with_span(span)?;
+            let parent = predicates.skip_binder_ref().parent;
             if let Some(impl_id) = parent
                 && matches!(genv.def_kind(impl_id), DefKind::Impl { .. })
             {
@@ -974,6 +971,16 @@ impl<'ck, 'genv, 'tcx, M: Mode> Checker<'ck, 'genv, 'tcx, M> {
                     .predicates_of(impl_id)
                     .with_span(span)?
                     .predicates()
+                    .map(|clauses| {
+                        clauses
+                            .iter()
+                            .enumerate()
+                            .filter(|(i, _)| {
+                                !predicates.skip_binder_ref().parent_overrides.contains(i)
+                            })
+                            .map(|(_, clause)| clause.clone())
+                            .collect()
+                    })
                     .instantiate(tcx, &generic_args, &early_refine_args);
                 let (_, impl_fn_clauses) =
                     Clause::split_off_fn_trait_clauses(self.genv, &impl_clauses);

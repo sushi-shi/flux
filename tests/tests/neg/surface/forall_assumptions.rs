@@ -21,7 +21,8 @@ fn assert_opaque_prop(_n: usize) {}
 
 #[flux::spec(fn() ensures opaque_prop(100))]
 pub fn test_ok() {
-    //~^ ERROR unbounded quantifiers
+    // The SMT backend conservatively discards the quantified assumption.
+    // It must still check the quantified precondition of the following call.
     assume_opaque_prop(100, 101);
-    assert_opaque_prop(100);
+    assert_opaque_prop(100); //~ ERROR refinement type error
 }
