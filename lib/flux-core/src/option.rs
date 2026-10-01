@@ -97,7 +97,7 @@ impl<T> Option<T> {
 
     /// Core impl: https://github.com/rust-lang/rust/blob/c6a955468b025dbe3d1de3e8f3e30496d1fb7f40/library/core/src/option.rs#L1504
     #[flux_rs::no_panic_if(F::no_panic())]
-    #[spec(fn(Option<T>[@b], F) -> Option<U>{s: s => b} where F: FnOnce(T) -> Option<U>)]
+    #[spec(fn(Option<T>[@b], F) -> Option<U>{s: s => b} where F: FnOnce({T | b}) -> Option<U>)]
     fn and_then<U, F: FnOnce(T) -> Option<U>>(self, f: F) -> Option<U>;
 
     /// Core impl: https://github.com/rust-lang/rust/blob/c6a955468b025dbe3d1de3e8f3e30496d1fb7f40/library/core/src/option.rs#L1783
@@ -114,11 +114,11 @@ impl<T> Option<T> {
 
     /// Core impl: https://github.com/rust-lang/rust/blob/c871d09d1cc32a649f4c5177bb819646260ed120/library/core/src/option.rs#L1160
     #[flux_rs::no_panic_if(F::no_panic())]
-    #[spec(fn(Option<T>[@b], F) -> Option<U>[b] where F: FnOnce(T) -> U)]
+    #[spec(fn(Option<T>[@b], F) -> Option<U>[b] where F: FnOnce({T | b}) -> U)]
     fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Option<U>;
 
     /// Core impl: https://github.com/rust-lang/rust/blob/c871d09d1cc32a649f4c5177bb819646260ed120/library/core/src/option.rs#L1224
     #[flux_rs::no_panic_if(F::no_panic())]
-    #[spec(fn(Option<T>[@b], U, F) -> U where F: FnOnce(T) -> U)]
+    #[spec(fn(Option<T>[@b], U, F) -> U where F: FnOnce({T | b}) -> U)]
     fn map_or<U, F: FnOnce(T) -> U>(self, default: U, f: F) -> U;
 }
