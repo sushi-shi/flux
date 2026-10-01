@@ -1,4 +1,8 @@
-use std::{fs::File, path::Path};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter, Write},
+    path::Path,
+};
 
 use flux_config as config;
 use rustc_hash::FxHashMap;
@@ -65,9 +69,9 @@ impl<R> QueryCache<R> {
 impl<R: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned> QueryCache<R> {
     pub fn save(&self) -> Result<(), std::io::Error> {
         let path = Self::path()?;
-        let mut file = File::create(path).unwrap();
-        serde_json::to_writer(&mut file, &self.entries).unwrap();
-        Ok(())
+        let mut writer = BufWriter::new(File::create(path)?);
+        serde_json::to_writer(&mut writer, &self.entries)?;
+        writer.flush()
     }
 
     pub fn load() -> Self {
@@ -75,7 +79,7 @@ impl<R: std::fmt::Debug + serde::Serialize + serde::de::DeserializeOwned> QueryC
         if let Ok(path) = path
             && let Ok(file) = File::open(path)
         {
-            let entries = serde_json::from_reader(file);
+            let entries = serde_json::from_reader(BufReader::new(file));
             if let Ok(entries) = entries {
                 return QueryCache { entries };
             }
