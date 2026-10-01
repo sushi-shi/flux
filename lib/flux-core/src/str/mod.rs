@@ -2,7 +2,7 @@
 
 // Rust offsets count UTF-8 bytes; SMT's str_len counts characters. Keep byte
 // length separate instead of identifying these two different quantities.
-#![flux::defs {
+#![cfg_attr(flux, flux::defs {
     fn nonempty_byte_len(s: str) -> int;
     fn byte_len(s: str) -> int { if s == "" { 0 } else { nonempty_byte_len(s) } }
     fn interior_boundary(s: str, offset: int) -> bool;
@@ -14,12 +14,21 @@
         if c < '\u{80}' { 1 } else if c < '\u{800}' { 2 }
         else if c < '\u{10000}' { 3 } else { 4 }
     }
-}]
+})]
+
+use core::str::pattern::Pattern;
 
 use flux_attrs::*;
 
 #[extern_spec]
 impl str {
+    #[no_panic_if(<P as Pattern>::literal_string())]
+    #[spec(fn(&str, P) -> bool
+        requires <P as Pattern>::literal_string())]
+    fn ends_with<P: Pattern>(&self, pat: P) -> bool
+    where
+        for<'a> P::Searcher<'a>: core::str::pattern::ReverseSearcher<'a>;
+
     #[no_panic]
     #[spec(fn(&str[@s]) -> usize{n: n == byte_len(s) && n <= isize::MAX})]
     fn len(&self) -> usize;
@@ -47,4 +56,5 @@ impl char {
 
 mod index;
 mod iter;
+mod pattern;
 mod utf8;

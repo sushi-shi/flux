@@ -158,7 +158,7 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
         }
     };
     let post = conjunction(&ensures, &values, Some(&old_values))?;
-    check_vec_field_types(&mut item, requires.iter().chain(&ensures))?;
+    check_field_types(&mut item, requires.iter().chain(&ensures))?;
     Ok(quote! {
         #[flux_tool::sig(fn(#(#inputs),*) #output requires #pre ensures #(#frames,)* #post)]
         #item
@@ -169,21 +169,26 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
 // logical Vec projection alone therefore cannot establish that a Rust receiver
 // is actually Vec. Ask rustc to check that fact in a dead block; the sealed local
 // marker also prevents Deref coercions from accepting a custom len method.
-fn check_vec_field_types<'a>(
+fn check_field_types<'a>(
     item: &mut ItemFn,
     exprs: impl Iterator<Item = &'a Expr>,
 ) -> syn::Result<()> {
     use syn::visit_mut::{self, VisitMut};
     #[derive(Default)]
-    struct Fields(Vec<Expr>);
+    struct Fields(Vec<(Expr, bool)>);
     impl VisitMut for Fields {
         fn visit_expr_method_call_mut(&mut self, call: &mut syn::ExprMethodCall) {
             if call.args.is_empty()
                 && call.turbofish.is_none()
-                && (call.method == "len" || call.method == "is_empty")
+                && ["len", "is_empty", "is_some", "is_none"]
+                    .iter()
+                    .any(|m| call.method == *m)
                 && matches!(&*call.receiver, Expr::Field(_))
             {
-                self.0.push((*call.receiver).clone());
+                self.0.push((
+                    (*call.receiver).clone(),
+                    call.method == "is_some" || call.method == "is_none",
+                ));
             }
             visit_mut::visit_expr_method_call_mut(self, call);
         }
@@ -209,9 +214,15 @@ fn check_vec_field_types<'a>(
     }
     let mut params = Vec::new();
     let mut results = Vec::new();
-    for mut receiver in fields.0 {
+    let has_vec = fields.0.iter().any(|(_, option)| !option);
+    let has_option = fields.0.iter().any(|(_, option)| *option);
+    for (mut receiver, option) in fields.0 {
         StripOld.visit_expr_mut(&mut receiver);
-        let check = quote!(__flux_check_vec_field_type(&#receiver););
+        let check = if option {
+            quote!(__flux_check_option_field_type(&#receiver);)
+        } else {
+            quote!(__flux_check_vec_field_type(&#receiver);)
+        };
         if mentions(receiver.to_token_stream(), &Ident::new("result", receiver.span())) {
             results.push(check);
         } else {
@@ -224,12 +235,25 @@ fn check_vec_field_types<'a>(
         let ReturnType::Type(_, ty) = &item.sig.output else { unreachable!() };
         quote!(let _ = |result: #ty| { #(#results)* };)
     };
+    let vec_witness = has_vec.then(|| {
+        quote! {
+                trait __FluxVecFieldType {}
+                impl<T> __FluxVecFieldType for std::vec::Vec<T> {}
+                const fn __flux_check_vec_field_type<T: __FluxVecFieldType>(_: &T) {}
+        }
+    });
+    let option_witness = has_option.then(|| {
+        quote! {
+                trait __FluxOptionFieldType {}
+                impl<T> __FluxOptionFieldType for core::option::Option<T> {}
+                const fn __flux_check_option_field_type<T: __FluxOptionFieldType>(_: &T) {}
+        }
+    });
     let check = syn::parse2::<syn::Stmt>(quote! {
         #[allow(dead_code, unused_variables, unreachable_code)]
         if false {
-            trait __FluxVecFieldType {}
-            impl<T> __FluxVecFieldType for std::vec::Vec<T> {}
-            const fn __flux_check_vec_field_type<T: __FluxVecFieldType>(_: &T) {}
+            #vec_witness
+            #option_witness
             #(#params)*
             #result_check
         }
@@ -430,6 +454,22 @@ fn lower(
             Ok(quote!((#left) #op (#right)))
         }
         Expr::MethodCall(m)
+            if m.method == "is_char_boundary" && m.args.len() == 1 && m.turbofish.is_none() =>
+        {
+            let Expr::Path(receiver) = &*m.receiver else { return unsupported(expr) };
+            if !receiver
+                .path
+                .get_ident()
+                .and_then(|i| values.get(&i.to_string()))
+                .is_some_and(|v| matches!(v.kind, ValueKind::Str))
+            {
+                return unsupported(expr);
+            }
+            let text = lower(&m.receiver, values, old_values)?;
+            let offset = lower(&m.args[0], values, old_values)?;
+            Ok(quote!(flux_core::str::boundary(#text, #offset)))
+        }
+        Expr::MethodCall(m)
             if m.args.len() == 1
                 && m.turbofish.is_none()
                 && (m.method == "starts_with" || m.method == "ends_with") =>
@@ -454,6 +494,13 @@ fn lower(
             }
         }
         Expr::MethodCall(m) if m.args.is_empty() && m.turbofish.is_none() => {
+            if matches!(&*m.receiver, Expr::Field(_))
+                && (m.method == "is_none" || m.method == "is_some")
+            {
+                let receiver = lower(&m.receiver, values, old_values)?;
+                let some = quote!(flux_core::option::model_is_some(#receiver));
+                return if m.method == "is_some" { Ok(some) } else { Ok(quote!(!(#some))) };
+            }
             if matches!(&*m.receiver, Expr::Field(_))
                 && (m.method == "len" || m.method == "is_empty")
             {

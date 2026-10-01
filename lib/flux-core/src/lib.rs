@@ -4,6 +4,7 @@
 #![cfg_attr(flux, feature(step_trait))]
 #![cfg_attr(flux, feature(sized_hierarchy))]
 #![cfg_attr(flux, feature(try_trait_v2))]
+#![cfg_attr(flux, feature(pattern))]
 #![cfg_attr(flux, flux::no_suggestions)]
 
 pub mod iter;

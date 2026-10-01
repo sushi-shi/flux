@@ -28,7 +28,42 @@ impl<T: Display + ?Sized> ToString for T {
 
 #[extern_spec]
 #[flux::refined_by(val: str)]
+#[invariant(0 <= flux_core::str::byte_len(val) && flux_core::str::byte_len(val) <= isize::MAX)]
 struct String;
+
+#[extern_spec]
+impl String {
+    #[no_panic]
+    #[spec(fn() -> String[""])]
+    const fn new() -> String;
+
+    #[no_panic]
+    #[spec(fn(&String[@s]) -> usize[flux_core::str::byte_len(s)])]
+    const fn len(&self) -> usize;
+
+    #[no_panic]
+    #[spec(fn(&String[@s]) -> bool[s == ""])]
+    const fn is_empty(&self) -> bool;
+
+    #[no_panic]
+    #[spec(fn(self: &mut String) ensures self: String[""])]
+    fn clear(&mut self);
+
+    // Normal-return content/length facts; capacity growth can panic.
+    #[spec(fn(self: &mut String[@before], &str[@text])
+        ensures self: String{after:
+            after == str_concat(before, text)
+            && flux_core::str::byte_len(after) == flux_core::str::byte_len(before)
+                + flux_core::str::byte_len(text)})]
+    fn push_str(&mut self, string: &str);
+}
+
+#[extern_spec]
+impl core::ops::Deref for String {
+    #[no_panic]
+    #[spec(fn(&String[@text]) -> &str[text])]
+    fn deref(&self) -> &str;
+}
 
 #[extern_spec]
 #[assoc(

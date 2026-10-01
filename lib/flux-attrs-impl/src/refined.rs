@@ -103,6 +103,13 @@ fn field_model(ty: &Type) -> syn::Result<(TokenStream, TokenStream)> {
             .all(|arg| matches!(arg, syn::GenericArgument::Type(_)))
         {
             if args.args.len() == 1
+                && (names == ["Option"]
+                    || names == ["std", "option", "Option"]
+                    || names == ["core", "option", "Option"])
+            {
+                return Ok((quote!(core::option::Option), quote!(core::option::Option #args)));
+            }
+            if args.args.len() == 1
                 && (names == ["Vec"]
                     || names == ["std", "vec", "Vec"]
                     || names == ["alloc", "vec", "Vec"])

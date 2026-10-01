@@ -12,6 +12,25 @@ pub fn contract(name: &str, attr: TokenStream, item: TokenStream) -> TokenStream
 }
 
 pub fn may_panic(item: TokenStream) -> TokenStream {
+    if let Ok(declaration) = syn::parse2::<syn::TraitItemFn>(item.clone())
+        && declaration.default.is_none()
+    {
+        // A declaration has no block in which to insert contract type witnesses.
+        // Infer its ordinary functional signature; only change the panic effect.
+        let holes = declaration.sig.inputs.iter().map(|_| quote!(_));
+        let has_signature = declaration.attrs.iter().any(|attr| {
+            attr.path()
+                .segments
+                .last()
+                .is_some_and(|s| s.ident == "sig" || s.ident == "spec")
+        });
+        let signature = (!has_signature).then(|| quote!(#[flux_tool::sig(fn(#(#holes),*) -> _)]));
+        return quote!(
+            #[flux_tool::no_panic_if(false)]
+            #signature
+            #item
+        );
+    }
     let parsed = match syn::parse2::<syn::ItemFn>(item.clone()) {
         Ok(item) => item,
         Err(err) => return err.to_compile_error(),

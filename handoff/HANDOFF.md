@@ -183,5 +183,15 @@ program panics".
    Struct invariants still use raw Flux model projections (`pending_utf8.len`), and `cfg_attr`
    wrappers remain in ordinary Codex code: these are remaining readability gaps, not the intended
    final surface. Keep adding Rust-shaped forms as real application contracts require them.
+   The inline parser extends this to selected Option fields (`active.is_none()`/`is_some()`),
+   String content equality, and `str::is_char_boundary` expressions. Option field methods also
+   require a Rust type witness. `may_panic` now works on trait declarations; it preserves an
+   existing explicit signature or infers the functional signature without adding guarantees.
+   The concrete finish method clears buffering state and emits exactly one extraction iff a
+   tag was active; checked caller lemmas prove resetting state and repeated-finish emptiness.
+   Its reverse-range suffix helper proves bounds and a delimiter boundary. Literal-pattern
+   `ends_with` currently models only panic effects: the generic pattern is a reference, whose
+   refinement sort does not carry its string contents. A buffered-text suffix boundary, full
+   push transitions, and exact longest-match behavior still require more modeling.
 8. **Performance.** Keep one solver process running instead of starting one per function. Measure
    `-Fcache` (per-function query cache) and parallel checking of functions.
