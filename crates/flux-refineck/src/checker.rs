@@ -581,10 +581,19 @@ impl<'ck, 'genv, 'tcx, M: Mode> Checker<'ck, 'genv, 'tcx, M> {
             .promoted
             .iter()
             .map(|body| {
-                Ok(body
-                    .return_ty()
-                    .refine(&hole_refiner)?
-                    .replace_holes(|binders, kind| infcx.fresh_infer_var_for_hole(binders, kind)))
+                // Canonicalize before holes become kvars. A kvar can capture
+                // an enclosing reference index and make it look independent
+                // of its referent, changing the number of hoisted variables
+                // between shape and refine mode.
+                let ty = body.return_ty().refine(&hole_refiner)?.shift_in_escaping(1);
+                let mut delegate = rty::canonicalize::LocalHoister::default();
+                let ty = rty::canonicalize::Hoister::with_delegate(&mut delegate)
+                    .transparent()
+                    .hoist(&ty);
+                let ty = delegate
+                    .bind(|_, preds| Ty::constr(Expr::and_from_iter(preds), ty))
+                    .to_ty();
+                Ok(ty.replace_holes(|binders, kind| infcx.fresh_infer_var_for_hole(binders, kind)))
             })
             .collect()
     }

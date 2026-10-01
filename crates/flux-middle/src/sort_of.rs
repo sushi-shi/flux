@@ -35,6 +35,13 @@ impl<'genv, 'tcx> GlobalEnv<'genv, 'tcx> {
             ty::TyKind::Slice(_) | ty::TyKind::Int(_) | ty::TyKind::Uint(_) => Some(rty::Sort::Int),
             ty::TyKind::Char => Some(rty::Sort::Char),
             ty::TyKind::Str => Some(rty::Sort::Str),
+            // A shared reference exposes the referent's logical value at
+            // generic boundaries (for example, Pattern implemented by &str).
+            // Mutable references retain unit indices because writes can
+            // change their referents without changing the reference itself.
+            ty::TyKind::Ref(_, ty, rustc_hir::Mutability::Not) => {
+                self.sort_of_rust_ty(def_id, *ty)?
+            }
             ty::TyKind::Adt(adt_def, args) => {
                 let mut sort_args = vec![];
                 let sort_def = self.adt_sort_def_of(adt_def.did())?;
@@ -117,6 +124,7 @@ impl rty::BaseTy {
             rty::BaseTy::Adt(adt_def, args) => adt_def.sort(args),
             rty::BaseTy::Param(param_ty) => rty::Sort::Param(*param_ty),
             rty::BaseTy::Str => rty::Sort::Str,
+            rty::BaseTy::Ref(_, ty, rustc_hir::Mutability::Not) => ty.index_sort(),
             rty::BaseTy::Tuple(fields) => rty::Sort::tuple(
                 fields.iter().map(rty::Ty::index_sort).collect::<Vec<_>>()
             ),

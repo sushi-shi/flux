@@ -1658,6 +1658,11 @@ impl Ty {
     }
 
     pub fn mk_ref(region: Region, ty: Ty, mutbl: Mutability) -> Ty {
+        if mutbl == Mutability::Not
+            && let Some(value) = ty.index_expr()
+        {
+            return Ty::indexed(BaseTy::Ref(region, ty, mutbl), value);
+        }
         BaseTy::Ref(region, ty, mutbl).to_ty()
     }
 
