@@ -12,6 +12,8 @@ defs! {
     // Exact remaining-size reasoning requires an explicit model for the impl.
     // In particular, an unrefined iterator must not inherit a decreasing size.
     fn has_size_model() -> bool { false }
+    // Every future yielded item satisfies this predicate. `next` checks both
+    // the returned item and that later states preserve the current guarantee.
     fn valid_item(self: Self, item: Self::Item) -> bool { true }
     fn size(self: Self) -> int { default_iterator_size(self) }
     fn done(self: Self) -> bool { default_iterator_done(self) }
@@ -19,11 +21,16 @@ defs! {
 )]
 trait Iterator {
     #[spec(
-        fn(self: &mut Self[@curr_s]) -> Option<Self::Item>[!<Self as Iterator>::done(curr_s)]
-        requires <Self as Iterator>::has_size_model()
+        fn(self: &mut Self[@curr_s]) -> Option<Self::Item{item:
+            <Self as Iterator>::valid_item(curr_s, item)}>{present:
+            <Self as Iterator>::has_size_model() => present == !<Self as Iterator>::done(curr_s)}
         ensures self: Self[#next_s],
-                <Self as Iterator>::step(curr_s, next_s),
-                if <Self as Iterator>::done(curr_s) {
+                forall item: Self::Item {
+                    <Self as Iterator>::valid_item(next_s, item)
+                        => <Self as Iterator>::valid_item(curr_s, item)
+                },
+                <Self as Iterator>::has_size_model() => <Self as Iterator>::step(curr_s, next_s),
+                <Self as Iterator>::has_size_model() => if <Self as Iterator>::done(curr_s) {
                     <Self as Iterator>::size(curr_s) == 0
                 } else {
                     <Self as Iterator>::size(curr_s) > 0

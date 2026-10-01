@@ -52,8 +52,10 @@ use crate::suggestions::{
     find_possible_solutions, make_flat_constraint_map, subst_fixpoint_solutions,
 };
 use crate::{
-    fixpoint_encoding::fixpoint::FixpointTypes, fixpoint_qualifiers::FIXPOINT_QUALIFIERS,
-    lean_encoding::LeanEncoder, projections::structurally_normalize_expr,
+    fixpoint_encoding::fixpoint::FixpointTypes,
+    fixpoint_qualifiers::FIXPOINT_QUALIFIERS,
+    lean_encoding::LeanEncoder,
+    projections::{NormalizeExt as _, structurally_normalize_expr},
 };
 
 pub mod decoding;
@@ -1163,6 +1165,14 @@ where
             rty::ExprKind::WKVar(wkvar) => {
                 preds.push(self.wkvar_to_fixpoint(wkvar)?);
             }
+            rty::ExprKind::Quant(QuantKind::Forall, QuantDom::Unbounded, _)
+                if !matches!(self.ecx.backend, Backend::Lean) =>
+            {
+                // The SMT backend cannot consume quantified assumptions. Dropping
+                // this positive conjunct weakens the context; it never discharges
+                // an obligation. Quantified heads are still checked by introducing
+                // arbitrary variables in `head_to_fixpoint`.
+            }
             _ => {
                 preds.push(fixpoint::Pred::Expr(self.ecx.expr_to_fixpoint(expr, &mut self.scx)?));
             }
@@ -1803,8 +1813,14 @@ impl<'genv, 'tcx> ExprEncodingCtxt<'genv, 'tcx> {
                 ]))
             }
             rty::ExprKind::Alias(alias_reft, args) => {
-                let sort = self.genv.sort_of_assoc_reft(alias_reft.assoc_id)?;
-                let sort = sort.instantiate_identity();
+                let def_id = self
+                    .def_id
+                    .map_or(alias_reft.assoc_id.parent(), |id| id.resolved_id());
+                let sort = alias_reft.fsort(self.genv)?.deeply_normalize_sorts(
+                    def_id,
+                    self.genv,
+                    &self.infcx,
+                )?;
                 let func =
                     fixpoint::Expr::Var(self.define_const_for_alias_reft(alias_reft, sort, scx));
                 let args = args
