@@ -9,7 +9,9 @@ use flux_attrs::*;
 //---------------------------------------------------------------------------------------
 #[extern_spec]
 #[refined_by(len: int)]
-#[invariant(0 <= len)]
+#[invariant(0 <= len && len <= usize::MAX)]
+// A Vec allocation is at most isize::MAX bytes. ZSTs may have usize::MAX elements.
+#[invariant(len * T::size_of() <= isize::MAX)]
 struct Vec<T, A: Allocator = Global>;
 
 //---------------------------------------------------------------------------------------
@@ -22,6 +24,12 @@ impl<T> Vec<T> {
 
 #[extern_spec]
 impl<T, A: Allocator> Vec<T, A> {
+    // RawVec::grow_amortized doubles a full allocation. Merely proving that
+    // one more element fits is insufficient: the doubled capacity must fit too.
+    #[no_panic_if(<A as Allocator>::collection_ops_no_panic() && n < usize::MAX &&
+        (T::size_of() == 0 ||
+         flux_core::num::max(if T::size_of() == 1 { 8 } else if T::size_of() <= 1024 { 4 } else { 1 },
+             flux_core::num::max(2 * n, n + 1)) * T::size_of() <= isize::MAX))]
     #[spec(fn(self: &mut Vec<T, A>[@n], T) ensures self: Vec<T, A>[n+1])]
     fn push(v: &mut Vec<T, A>, value: T);
 }

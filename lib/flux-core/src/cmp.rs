@@ -23,6 +23,8 @@ trait PartialEq<Rhs: PointeeSized = Self>: PointeeSized {
 #[assoc(
     fn min_res(a: Self, b: Self, res: Self) -> bool { true }
     fn max_res(a: Self, b: Self, res: Self) -> bool { true }
+    fn has_btree_key_model() -> bool { false }
+    fn btree_key(a: Self) -> int { 0 }
 )]
 trait Ord {
     #[spec(fn(Self[@a], Self[@b]) -> Self{v: <Self as Ord>::min_res(a, b, v)})]
@@ -38,7 +40,21 @@ trait Ord {
 
 #[extern_spec(core::cmp)]
 #[assoc(
+    fn has_btree_key_model() -> bool { true }
+    fn btree_key(a: int) -> int { a }
     fn min_res(a: int, b: int, res: int) -> bool { res == min(a, b) }
     fn max_res(a: int, b: int, res: int) -> bool { res == max(a, b) }
 )]
 impl Ord for usize {}
+
+macro_rules! integer_btree_keys {
+    ($($ty:ident),* $(,)?) => { $(
+        #[extern_spec(core::cmp)]
+        #[assoc(
+            fn has_btree_key_model() -> bool { true }
+            fn btree_key(a: int) -> int { a }
+        )]
+        impl Ord for $ty {}
+    )* };
+}
+integer_btree_keys!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, isize);

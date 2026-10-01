@@ -21,7 +21,10 @@ use core::{alloc::Layout, ptr::NonNull};
 
 use flux_attrs::*;
 
+// Opt-in covers allocation, deallocation, growth, and allocator cloning used by
+// collections. Unknown user allocators may panic and must keep the default.
 #[extern_spec(core::alloc)]
+#[assoc(fn collection_ops_no_panic() -> bool { false })]
 trait Allocator {
     /// Core impl: https://github.com/rust-lang/rust/blob/dab8d9d1066c4c95008163c7babf275106ce3f32/library/core/src/alloc/mod.rs#L133
     /// On success the block meets the size and alignment guarantees of `layout`. The real

@@ -12,6 +12,7 @@ fn contracts_have_no_runtime_checks_or_effects() {
     assert_eq!(unchanged(u32::MAX), u32::MAX);
 }
 
+#[flux_attrs::refined]
 struct Counter {
     next: u32,
 }
