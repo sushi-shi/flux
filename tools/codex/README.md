@@ -200,3 +200,71 @@ about 3 seconds on unchanged reruns and include work outside the verifier.
 These are observations for three arithmetic bodies during development, not a
 whole-project performance claim. Reported Cargo duration excludes corpus
 inventory and evidence hashing; use process wall time for total harness cost.
+
+## First pass through UTF-8 string splitting
+
+Codex's original `split_string` loop now checks under strict overflow and
+no-panic settings with a contract for prefix/suffix contents, individual byte
+budgets, and combined retained length at most the input length. The Rust
+implementation is unchanged. Its two local candidate invariants describe UTF-8
+boundaries and the suffix budget; the solver must establish both.
+
+The generalized models keep Rust byte length separate from SMT `str_len`, which
+counts characters. `CharIndices` carries source text and a front byte offset;
+its next item has valid start/end boundaries. Range indexing requires those
+boundaries, not merely numeric bounds. The byte length and interior-boundary
+functions remain uninterpreted, so these are partial external models, not a
+proof of the Rust standard library. Ordinary, prefix, suffix, and full ranges
+are modeled; inclusive ranges and exact character accounting remain future work.
+
+A new default string-equality qualifier preserves iterator provenance across
+loop joins. It proposes an invariant that is checked, rather than assuming
+strings are equal. Positive/negative regressions verify guarded slicing and
+reject wrong widths, arbitrary byte boundaries, inside-character slices, false
+slice lengths, and false conclusions after exhausting an iterator.
+
+The first-pass evidence is retained in
+[`review/string-split-first-pass.json.gz`](review/string-split-first-pass.json.gz).
+The full Flux suite passed 1,102 tests (7 ignored). Native checks compare the
+width formula with every Unicode scalar value and exercise cursor/slice models.
+Codex's 21 string-crate tests pass; an independent boundary oracle covers 971
+input/budget combinations, including overlap, all UTF-8 widths, combining marks,
+joined emoji, NUL, and near-maximum budgets.
+
+Mutating the real implementation to retain too much prefix or suffix fails both
+Flux and native tests. Doubling the removed-character counter fails the native
+oracle but still passes Flux: **the current contract does not specify that
+counter**. Exact removed counts and maximal retained slices are tested natively,
+not formally proved by this first pass. All mutations are restored afterward.
+
+```sh
+rustc --test tools/codex/model_checks/utf8.rs -o /tmp/utf8-model-check
+/tmp/utf8-model-check
+python3 tools/codex/check_string_split.py \
+  --source /path/to/prepared-codex --flux "$PWD" \
+  --native-target /path/to/native-target \
+  --output /tmp/codex-string-split-experiment
+```
+
+Use Codex's `spec/flux-string-split` branch, with `just` and `cargo-nextest` in the
+pinned environment. The experiment checks the contract, runs the native oracle,
+mutates the implementation, and verifies restored source. If the count contract
+is strengthened later, update the intentionally recorded count-specification gap.
+
+The cold split body took 622 ms, including 575 ms in the solver; the unchanged
+body took 46 ms with one cached query and no solver work. Total reported checker
+time did not improve (684 ms cold, 740 ms unchanged), and Cargo took 3.57/2.07 s.
+Profile the work outside the body check before claiming an overall speedup.
+
+Checking the full string library completes all 19 function/method checks: 8 are
+accepted under the models and 11 report errors (52 diagnostics). The accepted
+items include helpers without behavioral contracts, so this is not complete
+verification of the crate. Next work is exact character accounting and maximality,
+followed by the truncation callers, markers, allocation arithmetic, and public
+output-budget semantics.
+
+Model development also reduced a separate compiler crash: `Self` in an associated
+refinement inside a generic extern impl for primitive `str` loses impl arguments
+before Rust normalization. The models spell `str` explicitly. The unresolved
+reproducer is `tests/tests/todo/primitive_self_projection.rs`; it is retained as
+a blocker, outside the passing suite.
