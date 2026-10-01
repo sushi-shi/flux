@@ -167,8 +167,16 @@ program panics".
    be modeled. Vec field `len()`/`is_empty()` calls also check the actual Rust receiver type,
    so same-named user methods cannot acquire Vec semantics. Container equality compares the
    modeled properties only, not complete Rust contents. Native builds erase the attributes.
-   Codex uses the macros through `flux_core` under `cfg_attr(flux, ...)`; removing those wrappers
-   still needs ordinary-build dependency integration. Payload bindings/guards, nested patterns,
+   Projects can depend on `flux-attrs` and import the short attributes directly. Ordinary
+   builds erase them. When Cargo builds verifier-enabled macros, their expansions select on
+   the caller's `cfg(flux)`, so unchecked dependencies still receive their original Rust items.
+   Check both modes with `cargo test -p flux-attrs --test readable_erasure` and
+   `FLUX_BUILD_SYSROOT=1 cargo test -p flux-attrs --test readable_erasure`.
+   Loading ordinary erasing macros into a verifier is a configuration error, not a
+   successful check: `RUSTFLAGS='--cfg flux' cargo check -p flux-attrs --test readable_erasure`
+   without `FLUX_BUILD_SYSROOT` must reject their use. Use `cargo flux` to build the right mode.
+   `python3 tools/codex/test_native_attributes.py` checks this and the direct-driver regression.
+   Payload bindings/guards, nested patterns,
    indexing definedness, async functions, const-fn
    reflection and dedicated proof blocks remain open. Do not treat this first subset as completion
    of the syntax examples in SPECIFICATION.md.
@@ -180,9 +188,9 @@ program panics".
    `std::panic::catch_unwind` is rejected, including function-pointer coercion and checks without
    standard models, until exceptional state transitions are modeled. The corresponding native
    regression demonstrates why normal-return invariants cannot be reused after unwinding.
-   Struct invariants still use raw Flux model projections (`pending_utf8.len`), and `cfg_attr`
-   wrappers remain in ordinary Codex code: these are remaining readability gaps, not the intended
-   final surface. Keep adding Rust-shaped forms as real application contracts require them.
+   Struct invariants still use raw Flux model projections (`pending_utf8.len`): this is a
+   remaining readability gap, not the intended final surface. Keep adding Rust-shaped forms
+   as real application contracts require them.
    The inline parser extends this to selected Option fields (`active.is_none()`/`is_some()`),
    String content equality, and `str::is_char_boundary` expressions. Option field methods also
    require a Rust type witness. `may_panic` now works on trait declarations; it preserves an

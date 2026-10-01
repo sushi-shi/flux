@@ -12,6 +12,20 @@ fn contracts_have_no_runtime_checks_or_effects() {
     assert_eq!(unchanged(u32::MAX), u32::MAX);
 }
 
+// An unchecked dependency may use syntax outside the checker's current subset.
+// Even when Cargo builds its proc-macros for verification, that dependency must
+// receive its original Rust item, without a generated compile_error or witness.
+#[ensures(unsupported_predicate(result))]
+fn unchecked_dependency(value: u32) -> u32 {
+    value.saturating_add(1)
+}
+
+#[test]
+fn unsupported_conditions_are_erased_in_unchecked_crates() {
+    assert_eq!(unchecked_dependency(7), 8);
+    assert_eq!(unchecked_dependency(u32::MAX), u32::MAX);
+}
+
 #[flux_attrs::refined]
 struct Counter {
     next: u32,

@@ -18,11 +18,12 @@ pub fn may_panic(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     }
     #[cfg(flux_sysroot)]
     {
-        flux_attrs_impl::may_panic(tokens.into()).into()
+        let checked = flux_attrs_impl::may_panic(tokens.clone().into()).into();
+        when_checking(tokens, checked)
     }
     #[cfg(not(flux_sysroot))]
     {
-        tokens
+        erase_when_not_checking(tokens)
     }
 }
 
@@ -41,12 +42,13 @@ pub fn may_panic(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 pub fn refined(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     #[cfg(flux_sysroot)]
     {
-        flux_attrs_impl::refined(attr.into(), tokens.into()).into()
+        let checked = flux_attrs_impl::refined(attr.into(), tokens.clone().into()).into();
+        when_checking(tokens, checked)
     }
     #[cfg(not(flux_sysroot))]
     {
         let _ = attr;
-        tokens
+        erase_when_not_checking(tokens)
     }
 }
 
@@ -231,12 +233,40 @@ pub fn assume_parametric(attrs: TokenStream, tokens: TokenStream) -> TokenStream
     attr_impl::assume_parametric(attrs, tokens)
 }
 
+#[cfg(not(flux_sysroot))]
+fn erase_when_not_checking(item: TokenStream) -> TokenStream {
+    // A manually invoked driver must not accept contracts erased by an ordinary
+    // Cargo-built macro. cargo-flux rebuilds this crate with FLUX_BUILD_SYSROOT.
+    let mut output: TokenStream = r#"
+        #[cfg(flux)]
+        compile_error!("native Flux attributes cannot be used for verification; use cargo flux or rebuild flux-attrs with FLUX_BUILD_SYSROOT=1");
+    "#
+    .parse()
+    .unwrap();
+    output.extend(item);
+    output
+}
+
+#[cfg(flux_sysroot)]
+fn when_checking(original: TokenStream, checked: TokenStream) -> TokenStream {
+    // Cargo shares this host proc-macro between checked and unchecked target
+    // crates. Select the expansion using the caller's cfg, not the macro's cfg.
+    // Keep the original item intact: generated type witnesses and tool attributes
+    // must not leak into dependencies that are not being verified.
+    let mut output: TokenStream = "#[cfg(flux)]".parse().unwrap();
+    output.extend(checked);
+    output.extend("#[cfg(not(flux))]".parse::<TokenStream>().unwrap());
+    output.extend(original);
+    output
+}
+
 #[cfg(flux_sysroot)]
 mod attr_sysroot {
     use super::*;
 
     pub fn contract(name: &str, attr: TokenStream, item: TokenStream) -> TokenStream {
-        flux_attrs_impl::contract(name, attr.into(), item.into()).into()
+        let checked = flux_attrs_impl::contract(name, attr.into(), item.clone().into()).into();
+        when_checking(item, checked)
     }
 
     pub fn extern_spec(attr: TokenStream, tokens: TokenStream) -> TokenStream {
@@ -294,7 +324,7 @@ mod attr_dummy {
     use super::*;
 
     pub fn contract(_name: &str, _attr: TokenStream, item: TokenStream) -> TokenStream {
-        item
+        erase_when_not_checking(item)
     }
 
     pub fn refined_by(attr: TokenStream, item: TokenStream) -> TokenStream {
