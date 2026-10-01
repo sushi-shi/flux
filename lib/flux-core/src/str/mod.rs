@@ -34,7 +34,11 @@ impl str {
     fn len(&self) -> usize;
 
     #[no_panic]
-    #[spec(fn(&str[@s]) -> bool[byte_len(s) == 0])]
+    // Pinned core/src/str/mod.rs implements this as len() == 0. For valid
+    // UTF-8, zero bytes also means the empty string, independently of the
+    // byte/character length distinction for nonempty text.
+    #[spec(fn(&str[@s]) -> bool{empty:
+        empty == (byte_len(s) == 0) && empty == (s == "")})]
     fn is_empty(&self) -> bool;
 
     #[no_panic]

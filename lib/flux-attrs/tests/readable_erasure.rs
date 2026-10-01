@@ -72,3 +72,13 @@ fn optional_state_and_trait_effects_erase_in_native_builds() {
     erased.flush();
     assert_eq!(state.active, None);
 }
+
+#[ensures(result.is_none_or(|(_, index)| panic!("contract executed: {index}")))]
+fn optional_pair() -> Option<(usize, usize)> {
+    Some((3, 7))
+}
+
+#[test]
+fn optional_payload_closures_never_execute_natively() {
+    assert_eq!(optional_pair(), Some((3, 7)));
+}

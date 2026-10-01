@@ -1,6 +1,8 @@
 //! Rust-shaped contracts lowered to the existing refinement signature language.
 //! Unsupported expressions are errors, never omitted proof obligations.
 
+mod option_payload;
+
 use std::collections::HashMap;
 
 use proc_macro2::{Ident, TokenStream, TokenTree};
@@ -14,6 +16,7 @@ enum ValueKind {
     Str,
     Slice,
     Result,
+    Option,
 }
 
 #[derive(Clone)]
@@ -79,6 +82,7 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
         }
     }
     item.attrs = kept;
+    let field_conditions = requires.iter().chain(&ensures).cloned().collect::<Vec<_>>();
     let mut values = HashMap::new();
     let mut after_values = HashMap::new();
     let mut inputs = Vec::new();
@@ -152,13 +156,19 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
         }
         ReturnType::Type(_, ty) => {
             let index = format_ident!("__flux_contract_result", span = ty.span());
-            let (ty, kind) = indexed_type(ty, &index, false)?;
+            let (ty, kind) = if let Some(payload) =
+                option_payload::output(ty, &mut ensures, &values, &old_values)?
+            {
+                (quote!(core::option::Option<#payload>[# #index]), ValueKind::Option)
+            } else {
+                indexed_type(ty, &index, false)?
+            };
             values.insert("result".into(), Value { index, kind });
             quote!(-> #ty)
         }
     };
     let post = conjunction(&ensures, &values, Some(&old_values))?;
-    check_field_types(&mut item, requires.iter().chain(&ensures))?;
+    check_field_types(&mut item, field_conditions.iter())?;
     Ok(quote! {
         #[flux_tool::sig(fn(#(#inputs),*) #output requires #pre ensures #(#frames,)* #post)]
         #item
@@ -283,6 +293,10 @@ fn indexed_type(ty: &Type, index: &Ident, input: bool) -> syn::Result<(TokenStre
             let args = &p.path.segments.last().unwrap().arguments;
             Ok((quote!(std::vec::Vec #args [#binder]), ValueKind::Slice))
         }
+        Type::Path(p) if p.qself.is_none() && option_payload::is_option_path(&p.path) => {
+            let args = &p.path.segments.last().unwrap().arguments;
+            Ok((quote!(core::option::Option #args [#binder]), ValueKind::Option))
+        }
         Type::Path(p) if p.qself.is_none() => {
             let kind = if p.path.is_ident("str") { ValueKind::Str } else { ValueKind::Scalar };
             Ok((quote!(#ty[#binder]), kind))
@@ -344,11 +358,14 @@ fn lower(
                 if let Some(value) = values.get(&name.to_string()) {
                     if matches!(
                         value.kind,
-                        ValueKind::Slice | ValueKind::Result | ValueKind::Opaque
+                        ValueKind::Slice
+                            | ValueKind::Result
+                            | ValueKind::Option
+                            | ValueKind::Opaque
                     ) {
                         return Err(syn::Error::new(
                             p.span(),
-                            "contents are not modeled; use slice length or Result discriminant methods explicitly",
+                            "contents are not modeled; use length or discriminant methods explicitly",
                         ));
                     }
                     let index = &value.index;
@@ -373,6 +390,14 @@ fn lower(
             }
             // Entry bindings contain no result; clearing old_values rejects nesting.
             lower(&call.args[0], entry_values, None)
+        }
+        Expr::Call(call) if matches!(&*call.func, Expr::Path(p) if p.path.is_ident("concat")) => {
+            if call.args.len() != 2 {
+                return Err(syn::Error::new(call.span(), "concat(...) takes two string models"));
+            }
+            let left = lower(&call.args[0], values, old_values)?;
+            let right = lower(&call.args[1], values, old_values)?;
+            Ok(quote!(str_concat(#left, #right)))
         }
         Expr::If(branch) => {
             let Some((_, otherwise)) = &branch.else_branch else { return unsupported(expr) };
@@ -522,10 +547,19 @@ fn lower(
                     unsupported(expr)
                 };
             }
+            if matches!(value.kind, ValueKind::Option) {
+                return if m.method == "is_some" {
+                    Ok(quote!((#index).is_some))
+                } else if m.method == "is_none" {
+                    Ok(quote!(!(#index).is_some))
+                } else {
+                    unsupported(expr)
+                };
+            }
             let len = match value.kind {
                 ValueKind::Str => quote!(flux_core::str::byte_len(#index)),
                 ValueKind::Slice => quote!(#index),
-                ValueKind::Scalar | ValueKind::Result | ValueKind::Opaque => {
+                ValueKind::Scalar | ValueKind::Result | ValueKind::Option | ValueKind::Opaque => {
                     return unsupported(expr);
                 }
             };
