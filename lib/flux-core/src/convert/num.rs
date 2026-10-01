@@ -4,6 +4,24 @@ use core::num::TryFromIntError;
 
 use flux_attrs::*;
 
+// Only lossless unsigned From implementations present on every supported target.
+// Keep these separate from fallible TryFrom and from potentially lossy `as` casts.
+macro_rules! from_unsigned_widening {
+    ($Src:ident => $($Dst:ident),+) => {$(
+        #[extern_spec(core::convert)]
+        impl From<$Src> for $Dst {
+            #[no_panic]
+            #[spec(fn($Src[@value]) -> $Dst[value])]
+            fn from(value: $Src) -> $Dst;
+        }
+    )+}
+}
+
+from_unsigned_widening!(u8 => u16, u32, u64, u128, usize);
+from_unsigned_widening!(u16 => u32, u64, u128, usize);
+from_unsigned_widening!(u32 => u64, u128);
+from_unsigned_widening!(u64 => u128);
+
 // no possible bounds violation — always Ok
 macro_rules! try_from_unbounded {
     ($Src:ident => $($Dst:ident),+) => {$(

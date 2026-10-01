@@ -40,3 +40,16 @@ fn prefix(text: &str) -> &str { "a" }
 #[requires(text == "ab")]
 #[ensures(text.ends_with(result))]
 fn suffix(text: &str) -> &str { "b" }
+
+#[flux::refined_by(max_dimension: int, max_patches: int)]
+struct Limits {
+    #[flux::field(u32[max_dimension])]
+    max_dimension: u32,
+    #[flux::field(usize[max_patches])]
+    max_patches: usize,
+}
+
+#[ensures(result == (width <= limits.max_dimension && count <= limits.max_patches))]
+fn admitted(width: u32, count: usize, limits: Limits) -> bool {
+    width <= limits.max_dimension && count <= limits.max_patches
+}

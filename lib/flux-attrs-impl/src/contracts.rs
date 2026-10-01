@@ -176,6 +176,13 @@ fn lower(expr: &Expr, values: &HashMap<String, Value>) -> syn::Result<TokenStrea
             let e = lower(&p.expr, values)?;
             Ok(quote!((#e)))
         }
+        Expr::Field(field) => {
+            let syn::Member::Named(member) = &field.member else {
+                return unsupported(expr);
+            };
+            let base = lower(&field.base, values)?;
+            Ok(quote!((#base).#member))
+        }
         Expr::Unary(u) if matches!(u.op, syn::UnOp::Not(_) | syn::UnOp::Neg(_)) => {
             let op = &u.op;
             let e = lower(&u.expr, values)?;

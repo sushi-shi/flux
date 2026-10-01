@@ -122,6 +122,12 @@ macro_rules! uint_spec {
     ($T:ident) => {
         #[extern_spec(core::num)]
         impl $T {
+            /// Unsigned ceiling division; the mathematical numerator cannot overflow.
+            /// Pinned Rust uses quotient + (remainder != 0), and panics only for zero rhs.
+            #[no_panic]
+            #[spec(fn(num: $T, rhs: $T) -> $T[(num + rhs - 1) / rhs] requires rhs > 0)]
+            fn div_ceil(self, rhs: $T) -> $T;
+
             /// Saturating multiplication returns the exact product, capped at the type maximum.
             /// Pinned Rust implementation: `checked_mul`, with `None` mapped to `Self::MAX`.
             #[no_panic]

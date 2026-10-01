@@ -12,6 +12,8 @@ use proc_macro::TokenStream;
 /// Arithmetic denotes mathematical integers, as in Flux refinement signatures;
 /// it does not execute Rust arithmetic or wrap at machine bounds. Division and
 /// remainder currently require a positive integer literal divisor.
+/// Named fields project an aggregate's refinement record. Its field refinements
+/// must connect those same names to the corresponding Rust fields.
 ///
 /// Unsupported operations (including indexing, payload patterns, mutation,
 /// arbitrary calls, and async/generic signatures) are rejected during checking.

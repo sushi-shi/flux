@@ -29,3 +29,12 @@ fn stacked_conditions_are_all_checked(value: u32) -> u32 { value } //~ ERROR ref
 #[requires(text == "ab")]
 #[ensures(result.starts_with(text))]
 fn reversed_prefix(text: &str) -> &str { "a" } //~ ERROR refinement type
+
+#[flux::refined_by(max_dimension: int)]
+struct Limits {
+    #[flux::field(u32[max_dimension])]
+    max_dimension: u32,
+}
+
+#[ensures(result == (width <= limits.max_dimension))]
+fn ignores_limit(width: u32, limits: Limits) -> bool { true } //~ ERROR refinement type
