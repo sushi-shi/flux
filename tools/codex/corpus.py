@@ -113,6 +113,7 @@ def classify(returncode, log):
         # Retain raw diagnostics: this is triage, never a confirmed bug claim.
         if any(message in text for message in (
             "refinement type error", "postcondition cannot be proved",
+            "type invariant may not hold",
             "may panic:", "arithmetic operation may overflow",
         )):
             status = "proof_failure"

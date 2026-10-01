@@ -32,7 +32,8 @@ class EvidenceTests(unittest.TestCase):
 
     def test_panic_and_overflow_obligations_are_proof_failures(self):
         for message in ("call to index may panic: MightPanic(Transitive)",
-                        "arithmetic operation may overflow"):
+                        "arithmetic operation may overflow",
+                        "type invariant may not hold (when place is folded)"):
             with self.subTest(message=message):
                 self.assertEqual(classify(101, message)['status'], 'proof_failure')
 
