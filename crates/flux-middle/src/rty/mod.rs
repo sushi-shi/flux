@@ -688,20 +688,27 @@ impl Pretty for FnTraitPredicate {
     }
 }
 
-impl FnTraitPredicate {
-    pub fn fndef_sig(&self) -> FnSig {
-        let inputs = self.tupled_args.expect_tuple().iter().cloned().collect();
-        let ret = self.output.clone().shift_in_escaping(1);
+impl Binder<FnTraitPredicate> {
+    pub fn fndef_sig(&self) -> PolyFnSig {
+        let pred = self.skip_binder_ref();
+        let mut delegate = canonicalize::LocalHoister::new(self.vars().to_vec());
+        let args = canonicalize::Hoister::with_delegate(&mut delegate)
+            .transparent()
+            .hoist(&pred.tupled_args);
+        let inputs = args.expect_tuple().iter().cloned().collect();
+        let ret = pred.output.clone().shift_in_escaping(1);
         let output = Binder::bind_with_vars(FnOutput::new(ret, vec![]), List::empty());
-        FnSig::new(
-            Safety::Safe,
-            rustc_abi::ExternAbi::Rust,
-            List::empty(),
-            inputs,
-            output,
-            Expr::ff(),
-            false,
-        )
+        delegate.bind(|_, requires| {
+            FnSig::new(
+                Safety::Safe,
+                rustc_abi::ExternAbi::Rust,
+                requires.into(),
+                inputs,
+                output,
+                Expr::ff(),
+                false,
+            )
+        })
     }
 }
 
@@ -1044,6 +1051,9 @@ pub enum Sort {
     App(SortCtor, List<Sort>),
     Var(ParamSort),
     Infer(SortVid),
+    /// The value sort of a surface type hole, resolved with that type during
+    /// structural compatibility checking.
+    TypeHole(TyVid),
     RawPtr,
     Err,
 }
@@ -1612,7 +1622,33 @@ impl Ty {
         Ok(Ty::indexed(bty, Expr::unit_struct(def_id)))
     }
     pub fn tuple(tys: impl Into<List<Ty>>) -> Ty {
-        BaseTy::Tuple(tys.into()).to_ty()
+        let tys = tys.into();
+        if let Some(fields) = tys.iter().map(Ty::index_expr).collect::<Option<Vec<_>>>() {
+            Ty::indexed(BaseTy::Tuple(tys), Expr::tuple(fields.into()))
+        } else {
+            BaseTy::Tuple(tys).to_ty()
+        }
+    }
+
+    pub fn index_sort(&self) -> Sort {
+        match self.kind() {
+            TyKind::Indexed(bty, _) => bty.sort(),
+            TyKind::Exists(ty) => ty.skip_binder_ref().index_sort(),
+            TyKind::Constr(_, ty) | TyKind::Blocked(ty) => ty.index_sort(),
+            TyKind::Downcast(_, _, parent, _, _) => parent.index_sort(),
+            TyKind::Infer(vid) => Sort::TypeHole(*vid),
+            _ => Sort::unit(),
+        }
+    }
+
+    pub fn index_expr(&self) -> Option<Expr> {
+        match self.kind() {
+            TyKind::Indexed(_, idx) => Some(idx.clone()),
+            TyKind::Constr(_, ty) | TyKind::Blocked(ty) => ty.index_expr(),
+            TyKind::Downcast(_, _, parent, _, _) => parent.index_expr(),
+            TyKind::Exists(_) | TyKind::Infer(_) => None,
+            _ => Some(Expr::unit()),
+        }
     }
 
     pub fn array(ty: Ty, c: Const) -> Ty {

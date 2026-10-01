@@ -282,6 +282,7 @@ fn check_fn_subtyping(
     let tcx = infcx.genv.tcx();
 
     let super_sig = super_sig
+        .deeply_normalize_sorts(infcx.def_id, infcx.genv, infcx.region_infcx)?
         .replace_bound_vars(
             |_| rty::ReErased,
             |sort, _, kind| Expr::fvar(infcx.define_bound_reft_var(sort, kind)),
@@ -311,6 +312,7 @@ fn check_fn_subtyping(
         };
         // ... jump right here.
         let sub_sig = sub_sig
+            .deeply_normalize_sorts(infcx.def_id, infcx.genv, infcx.region_infcx)?
             .replace_bound_vars(
                 |_| rty::ReErased,
                 |sort, mode, _| infcx.fresh_infer_var(sort, mode),
@@ -1147,7 +1149,7 @@ impl<'ck, 'genv, 'tcx, M: Mode> Checker<'ck, 'genv, 'tcx, M> {
 
             for poly_fn_trait_pred in Clause::split_off_fn_trait_clauses(self.genv, &predicates).1 {
                 if poly_fn_trait_pred.skip_binder_ref().self_ty.to_rustc(tcx) == self_ty {
-                    return Ok(poly_fn_trait_pred.map(|fn_trait_pred| fn_trait_pred.fndef_sig()));
+                    return Ok(poly_fn_trait_pred.fndef_sig());
                 }
             }
             // Continue to the parent if we didn't find a match
@@ -1171,7 +1173,7 @@ impl<'ck, 'genv, 'tcx, M: Mode> Checker<'ck, 'genv, 'tcx, M> {
             .skip_binder_ref()
             .self_ty
             .as_bty_skipping_existentials();
-        let oblig_sig = poly_fn_trait_pred.map_ref(|fn_trait_pred| fn_trait_pred.fndef_sig());
+        let oblig_sig = poly_fn_trait_pred.fndef_sig();
         match self_ty {
             Some(BaseTy::Closure(def_id, _, _, _)) => {
                 let Some(poly_sig) = self.inherited.closures.get(def_id).cloned() else {

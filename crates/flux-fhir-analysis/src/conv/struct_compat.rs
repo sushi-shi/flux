@@ -114,7 +114,13 @@ struct Holes {
 
 impl TypeFolder for &Holes {
     fn fold_sort(&mut self, sort: &rty::Sort) -> rty::Sort {
-        if let rty::Sort::Infer(vid) = sort {
+        if let rty::Sort::TypeHole(vid) = sort {
+            self.types
+                .get(vid)
+                .unwrap_or_else(|| bug!("unfilled type hole {vid:?}"))
+                .index_sort()
+                .fold_with(self)
+        } else if let rty::Sort::Infer(vid) = sort {
             self.sorts
                 .get(vid)
                 .cloned()

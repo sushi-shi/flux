@@ -402,6 +402,7 @@ impl SortEncodingCtxt {
             rty::Sort::Var(k) => fixpoint::Sort::Var(k.index()),
             rty::Sort::Err
             | rty::Sort::Infer(_)
+            | rty::Sort::TypeHole(_)
             | rty::Sort::Loc
             | rty::Sort::Alias(rty::AliasTy { kind: rty::AliasKind::Free { .. }, .. }) => {
                 tracked_span_bug!("unexpected sort `{sort:?}`")
