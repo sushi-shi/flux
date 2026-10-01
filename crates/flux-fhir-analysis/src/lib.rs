@@ -298,6 +298,7 @@ fn predicates_of(
             Ok(rty::EarlyBinder(rty::GenericPredicates {
                 parent: genv.tcx().clauses_of(def_id).parent,
                 predicates: rty::List::empty(),
+                parent_overrides: vec![],
             }))
         }
         kind => {

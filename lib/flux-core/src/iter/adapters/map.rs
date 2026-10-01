@@ -14,6 +14,7 @@ struct Map<I, F>;
 impl<B, I: Iterator, F: FnMut(I::Item) -> B> Iterator for Map<I, F> {
     #[spec(fn(self: &mut Self[@curr_s]) -> Option<B>[!<Self as Iterator>::done(curr_s)]
            requires <I as Iterator>::has_size_model()
-           ensures self: Self{next_s: <Self as Iterator>::step(curr_s, next_s)})]
+           ensures self: Self{next_s: <Self as Iterator>::step(curr_s, next_s)}
+           where F: FnMut(I::Item{item: <I as Iterator>::valid_item(curr_s.inner, item)}) -> B)]
     fn next(&mut self) -> Option<B>;
 }

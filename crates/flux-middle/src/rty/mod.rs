@@ -306,6 +306,9 @@ pub const SELF_PARAM_TY: ParamTy = ParamTy { index: 0, name: kw::SelfUpper };
 pub struct GenericPredicates {
     pub parent: Option<DefId>,
     pub predicates: List<Clause>,
+    /// Parent predicate indices refined by a trusted extern method contract.
+    /// Their replacements are included in `predicates` and checked at the call.
+    pub parent_overrides: Vec<usize>,
 }
 
 #[derive(
