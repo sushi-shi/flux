@@ -801,7 +801,10 @@ fn generic_params_to_fields(
                     Some(parse_quote_spanned!(span=> &#lifetime ()))
                 }
                 GenericParam::Type(syn::TypeParam { ident, .. }) => {
-                    Some(parse_quote_spanned!(span=> #ident))
+                    // A ?Sized parameter cannot be a non-final struct field.
+                    // Only the final field carries the external Self type;
+                    // these fields merely keep generic parameters in use.
+                    Some(parse_quote_spanned!(span=> ::core::marker::PhantomData<#ident>))
                 }
                 GenericParam::Const(..) => None,
             }

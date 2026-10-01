@@ -27,6 +27,9 @@ pub mod cmp;
 pub mod clone;
 
 #[cfg(any(flux, doc))]
+pub mod default;
+
+#[cfg(any(flux, doc))]
 pub mod slice;
 
 #[cfg(any(flux, doc))]
