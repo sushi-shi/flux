@@ -175,17 +175,22 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
     })
 }
 
-// Logical single-field records can coerce through their scalar index. A typed
-// logical Vec projection alone therefore cannot establish that a Rust receiver
-// is actually Vec. Ask rustc to check that fact in a dead block; the sealed local
-// marker also prevents Deref coercions from accepting a custom len method.
+// Logical single-field records can coerce through their scalar index. Ask
+// rustc to check the standard Rust type behind each field operation in a dead
+// block. Sealed local markers also reject custom methods reached through Deref.
 fn check_field_types<'a>(
     item: &mut ItemFn,
     exprs: impl Iterator<Item = &'a Expr>,
 ) -> syn::Result<()> {
     use syn::visit_mut::{self, VisitMut};
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum FieldKind {
+        Vec,
+        Option,
+        String,
+    }
     #[derive(Default)]
-    struct Fields(Vec<(Expr, bool)>);
+    struct Fields(Vec<(Expr, FieldKind)>);
     impl VisitMut for Fields {
         fn visit_expr_method_call_mut(&mut self, call: &mut syn::ExprMethodCall) {
             if call.args.is_empty()
@@ -197,8 +202,19 @@ fn check_field_types<'a>(
             {
                 self.0.push((
                     (*call.receiver).clone(),
-                    call.method == "is_some" || call.method == "is_none",
+                    if call.method == "is_some" || call.method == "is_none" {
+                        FieldKind::Option
+                    } else {
+                        FieldKind::Vec
+                    },
                 ));
+            }
+            if call.method == "is_char_boundary"
+                && call.args.len() == 1
+                && call.turbofish.is_none()
+                && matches!(&*call.receiver, Expr::Field(_))
+            {
+                self.0.push(((*call.receiver).clone(), FieldKind::String));
             }
             visit_mut::visit_expr_method_call_mut(self, call);
         }
@@ -224,14 +240,15 @@ fn check_field_types<'a>(
     }
     let mut params = Vec::new();
     let mut results = Vec::new();
-    let has_vec = fields.0.iter().any(|(_, option)| !option);
-    let has_option = fields.0.iter().any(|(_, option)| *option);
-    for (mut receiver, option) in fields.0 {
+    let has_vec = fields.0.iter().any(|(_, kind)| *kind == FieldKind::Vec);
+    let has_option = fields.0.iter().any(|(_, kind)| *kind == FieldKind::Option);
+    let has_string = fields.0.iter().any(|(_, kind)| *kind == FieldKind::String);
+    for (mut receiver, kind) in fields.0 {
         StripOld.visit_expr_mut(&mut receiver);
-        let check = if option {
-            quote!(__flux_check_option_field_type(&#receiver);)
-        } else {
-            quote!(__flux_check_vec_field_type(&#receiver);)
+        let check = match kind {
+            FieldKind::Vec => quote!(__flux_check_vec_field_type(&#receiver);),
+            FieldKind::Option => quote!(__flux_check_option_field_type(&#receiver);),
+            FieldKind::String => quote!(__flux_check_string_field_type(&#receiver);),
         };
         if mentions(receiver.to_token_stream(), &Ident::new("result", receiver.span())) {
             results.push(check);
@@ -259,11 +276,19 @@ fn check_field_types<'a>(
                 const fn __flux_check_option_field_type<T: __FluxOptionFieldType>(_: &T) {}
         }
     });
+    let string_witness = has_string.then(|| {
+        quote! {
+            trait __FluxStringFieldType {}
+            impl __FluxStringFieldType for std::string::String {}
+            const fn __flux_check_string_field_type<T: __FluxStringFieldType>(_: &T) {}
+        }
+    });
     let check = syn::parse2::<syn::Stmt>(quote! {
         #[allow(dead_code, unused_variables, unreachable_code)]
         if false {
             #vec_witness
             #option_witness
+            #string_witness
             #(#params)*
             #result_check
         }
@@ -481,13 +506,18 @@ fn lower(
         Expr::MethodCall(m)
             if m.method == "is_char_boundary" && m.args.len() == 1 && m.turbofish.is_none() =>
         {
-            let Expr::Path(receiver) = &*m.receiver else { return unsupported(expr) };
-            if !receiver
-                .path
-                .get_ident()
-                .and_then(|i| values.get(&i.to_string()))
-                .is_some_and(|v| matches!(v.kind, ValueKind::Str))
-            {
+            let string_receiver = match &*m.receiver {
+                Expr::Field(_) => true, // Checked by the generated Rust type witness.
+                Expr::Path(receiver) => {
+                    receiver
+                        .path
+                        .get_ident()
+                        .and_then(|i| values.get(&i.to_string()))
+                        .is_some_and(|v| matches!(v.kind, ValueKind::Str))
+                }
+                _ => false,
+            };
+            if !string_receiver {
                 return unsupported(expr);
             }
             let text = lower(&m.receiver, values, old_values)?;

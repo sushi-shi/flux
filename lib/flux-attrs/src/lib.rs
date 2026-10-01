@@ -70,9 +70,10 @@ pub fn refined(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 /// Unsupported operations (including indexing, payload patterns, mutation,
 /// arbitrary calls, and async signatures) are rejected during checking.
 /// Generic payloads absent from the conditions remain opaque. Vec-valued field
-/// len/is_empty calls use a typed standard Vec model; other field methods fail.
+/// len/is_empty calls use a typed standard Vec model.
 /// Option fields support is_some/is_none with a Rust type witness. String-slice
-/// parameters and results support is_char_boundary(offset).
+/// parameters and results, and standard String fields, support
+/// is_char_boundary(offset). String fields use a Rust type witness.
 /// Outside Flux these attributes are erased without executing their expressions.
 #[proc_macro_attribute]
 pub fn requires(attr: TokenStream, tokens: TokenStream) -> TokenStream {
