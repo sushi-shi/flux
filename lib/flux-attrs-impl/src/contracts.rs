@@ -12,8 +12,10 @@ enum ValueKind {
     Scalar,
     Str,
     Slice,
+    Result,
 }
 
+#[derive(Clone)]
 struct Value {
     index: Ident,
     kind: ValueKind,
@@ -67,29 +69,57 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
     }
     item.attrs = kept;
     let mut values = HashMap::new();
+    let mut after_values = HashMap::new();
     let mut inputs = Vec::new();
-    for input in &item.sig.inputs {
-        let FnArg::Typed(input) = input else {
-            return Err(syn::Error::new(
-                input.span(),
-                "readable contracts do not yet support self receivers",
-            ));
+    let mut frames = Vec::new();
+    for (position, input) in item.sig.inputs.iter().enumerate() {
+        let (name, ty) = match input {
+            FnArg::Typed(input) => {
+                let Pat::Ident(pat) = &*input.pat else {
+                    return Err(syn::Error::new(
+                        input.pat.span(),
+                        "contract parameters must be named",
+                    ));
+                };
+                if pat.by_ref.is_some() || pat.subpat.is_some() || pat.ident == "result" {
+                    return Err(syn::Error::new(
+                        pat.span(),
+                        "unsupported parameter pattern or reserved name `result`",
+                    ));
+                }
+                (pat.ident.clone(), &*input.ty)
+            }
+            FnArg::Receiver(receiver) => {
+                if receiver.colon_token.is_some() || receiver.reference.is_none() {
+                    return Err(syn::Error::new(
+                        receiver.span(),
+                        "use an &self or &mut self receiver",
+                    ));
+                }
+                (Ident::new("self", receiver.self_token.span), &*receiver.ty)
+            }
         };
-        let Pat::Ident(pat) = &*input.pat else {
-            return Err(syn::Error::new(input.pat.span(), "contract parameters must be named"));
+        let index = format_ident!("__flux_contract_input_{}", position, span = name.span());
+        let (ty, kind) = if let Type::Reference(r) = ty
+            && r.mutability.is_some()
+        {
+            let (before, kind) = indexed_type(&r.elem, &index, true)?;
+            let after_index =
+                format_ident!("__flux_contract_after_{}", position, span = name.span());
+            let (after, _) = indexed_type(&r.elem, &after_index, false)?;
+            after_values.insert(name.to_string(), Value { index: after_index, kind });
+            frames.push(quote!(#name: #after));
+            (quote!(#name: &strg #before), kind)
+        } else {
+            let (ty, kind) = indexed_type(ty, &index, true)?;
+            (quote!(#name: #ty), kind)
         };
-        if pat.by_ref.is_some() || pat.subpat.is_some() || pat.ident == "result" {
-            return Err(syn::Error::new(
-                pat.span(),
-                "unsupported parameter pattern or reserved name `result`",
-            ));
-        }
-        let index = format_ident!("__flux_contract_{}", pat.ident, span = pat.ident.span());
-        let (ty, kind) = indexed_type(&input.ty, &index, true)?;
-        values.insert(pat.ident.to_string(), Value { index, kind });
+        values.insert(name.to_string(), Value { index, kind });
         inputs.push(ty);
     }
-    let pre = conjunction(&requires, &values)?;
+    let pre = conjunction(&requires, &values, None)?;
+    let old_values = values.clone();
+    values.extend(after_values);
     let output = match &item.sig.output {
         ReturnType::Default => quote!(),
         ReturnType::Type(_, ty) if matches!(&**ty, Type::Tuple(t) if t.elems.is_empty()) => {
@@ -102,9 +132,9 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
             quote!(-> #ty)
         }
     };
-    let post = conjunction(&ensures, &values)?;
+    let post = conjunction(&ensures, &values, Some(&old_values))?;
     Ok(quote! {
-        #[flux_tool::sig(fn(#(#inputs),*) #output requires #pre ensures #post)]
+        #[flux_tool::sig(fn(#(#inputs),*) #output requires #pre ensures #(#frames,)* #post)]
         #item
     })
 }
@@ -120,6 +150,16 @@ fn indexed_type(ty: &Type, index: &Ident, input: bool) -> syn::Result<(TokenStre
             let elem = &s.elem;
             Ok((quote!([#elem][#binder]), ValueKind::Slice))
         }
+        Type::Path(p) if p.qself.is_none() && is_result_path(&p.path) => {
+            let args = &p.path.segments.last().unwrap().arguments;
+            // Canonical spelling prevents a user-defined Result from acquiring
+            // the standard discriminant model merely by its name.
+            Ok((quote!(std::result::Result #args [#binder]), ValueKind::Result))
+        }
+        Type::Path(p) if p.qself.is_none() && is_vec_path(&p.path) => {
+            let args = &p.path.segments.last().unwrap().arguments;
+            Ok((quote!(std::vec::Vec #args [#binder]), ValueKind::Slice))
+        }
         Type::Path(p)
             if p.qself.is_none() && p.path.segments.iter().all(|s| s.arguments.is_empty()) =>
         {
@@ -129,29 +169,62 @@ fn indexed_type(ty: &Type, index: &Ident, input: bool) -> syn::Result<(TokenStre
         _ => {
             Err(syn::Error::new(
                 ty.span(),
-                "unsupported contract type; use scalars, reflected enums, or immutable strings/slices",
+                "unsupported contract type; use scalars, refined structs/enums, Result, Vec, or strings/slices",
             ))
         }
     }
 }
 
-fn conjunction(exprs: &[Expr], values: &HashMap<String, Value>) -> syn::Result<TokenStream> {
+fn is_result_path(path: &syn::Path) -> bool {
+    let names: Vec<_> = path.segments.iter().map(|s| s.ident.to_string()).collect();
+    let standard = names == ["Result"]
+        || names == ["core", "result", "Result"]
+        || names == ["std", "result", "Result"];
+    standard
+        && matches!(
+            &path.segments.last().unwrap().arguments,
+            syn::PathArguments::AngleBracketed(args)
+                if args.args.len() == 2 && args.args.iter().all(|a| matches!(a, syn::GenericArgument::Type(_)))
+        )
+}
+
+fn is_vec_path(path: &syn::Path) -> bool {
+    let names: Vec<_> = path.segments.iter().map(|s| s.ident.to_string()).collect();
+    let standard =
+        names == ["Vec"] || names == ["alloc", "vec", "Vec"] || names == ["std", "vec", "Vec"];
+    standard
+        && matches!(
+            &path.segments.last().unwrap().arguments,
+            syn::PathArguments::AngleBracketed(args)
+                if args.args.len() == 1 && args.args.iter().all(|a| matches!(a, syn::GenericArgument::Type(_)))
+        )
+}
+
+fn conjunction(
+    exprs: &[Expr],
+    values: &HashMap<String, Value>,
+    old_values: Option<&HashMap<String, Value>>,
+) -> syn::Result<TokenStream> {
     let exprs = exprs
         .iter()
-        .map(|e| lower(e, values))
+        .map(|e| lower(e, values, old_values))
         .collect::<syn::Result<Vec<_>>>()?;
     Ok(quote!(true #(&& (#exprs))*))
 }
 
-fn lower(expr: &Expr, values: &HashMap<String, Value>) -> syn::Result<TokenStream> {
+fn lower(
+    expr: &Expr,
+    values: &HashMap<String, Value>,
+    old_values: Option<&HashMap<String, Value>>,
+) -> syn::Result<TokenStream> {
     match expr {
         Expr::Path(p) => {
             if let Some(name) = p.path.get_ident() {
                 if let Some(value) = values.get(&name.to_string()) {
-                    if matches!(value.kind, ValueKind::Slice) {
+                    if matches!(value.kind, ValueKind::Slice | ValueKind::Result) {
                         return Err(syn::Error::new(
                             p.span(),
-                            "slice contents are not modeled; use .len() or .is_empty() explicitly",
+                            "contents are not modeled; use slice length or Result discriminant methods explicitly",
                         ));
                     }
                     let index = &value.index;
@@ -164,6 +237,32 @@ fn lower(expr: &Expr, values: &HashMap<String, Value>) -> syn::Result<TokenStrea
             }
             Ok(quote!(#p))
         }
+        Expr::Call(call) if matches!(&*call.func, Expr::Path(p) if p.path.is_ident("old")) => {
+            let Some(entry_values) = old_values else {
+                return Err(syn::Error::new(
+                    call.span(),
+                    "old(...) is only allowed in postconditions and cannot be nested",
+                ));
+            };
+            if call.args.len() != 1 {
+                return Err(syn::Error::new(call.span(), "old(...) takes exactly one expression"));
+            }
+            // Entry bindings contain no result; clearing old_values rejects nesting.
+            lower(&call.args[0], entry_values, None)
+        }
+        Expr::If(branch) => {
+            let Some((_, otherwise)) = &branch.else_branch else { return unsupported(expr) };
+            let condition = lower(&branch.cond, values, old_values)?;
+            let then = lower_block(&branch.then_branch, values, old_values)?;
+            let otherwise = match &**otherwise {
+                Expr::Block(block) if block.label.is_none() => {
+                    lower_block(&block.block, values, old_values)?
+                }
+                Expr::If(_) => lower(otherwise, values, old_values)?,
+                _ => return unsupported(expr),
+            };
+            Ok(quote!(if #condition { #then } else { #otherwise }))
+        }
         Expr::Lit(l)
             if matches!(
                 l.lit,
@@ -173,19 +272,19 @@ fn lower(expr: &Expr, values: &HashMap<String, Value>) -> syn::Result<TokenStrea
             Ok(quote!(#l))
         }
         Expr::Paren(p) => {
-            let e = lower(&p.expr, values)?;
+            let e = lower(&p.expr, values, old_values)?;
             Ok(quote!((#e)))
         }
         Expr::Field(field) => {
             let syn::Member::Named(member) = &field.member else {
                 return unsupported(expr);
             };
-            let base = lower(&field.base, values)?;
+            let base = lower(&field.base, values, old_values)?;
             Ok(quote!((#base).#member))
         }
         Expr::Unary(u) if matches!(u.op, syn::UnOp::Not(_) | syn::UnOp::Neg(_)) => {
             let op = &u.op;
-            let e = lower(&u.expr, values)?;
+            let e = lower(&u.expr, values, old_values)?;
             Ok(quote!(#op (#e)))
         }
         Expr::Binary(b)
@@ -203,8 +302,8 @@ fn lower(expr: &Expr, values: &HashMap<String, Value>) -> syn::Result<TokenStrea
                     | syn::BinOp::ShrAssign(_)
             ) =>
         {
-            let left = lower(&b.left, values)?;
-            let right = lower(&b.right, values)?;
+            let left = lower(&b.left, values, old_values)?;
+            let right = lower(&b.right, values, old_values)?;
             let op = &b.op;
             // Partial arithmetic needs definedness checks, not an implicit assumption.
             if matches!(op, syn::BinOp::Div(_) | syn::BinOp::Rem(_))
@@ -246,8 +345,8 @@ fn lower(expr: &Expr, values: &HashMap<String, Value>) -> syn::Result<TokenStrea
             if !is_string(receiver) || !is_string(argument) {
                 return unsupported(expr);
             }
-            let text = lower(&m.receiver, values)?;
-            let part = lower(&m.args[0], values)?;
+            let text = lower(&m.receiver, values, old_values)?;
+            let part = lower(&m.args[0], values, old_values)?;
             if m.method == "starts_with" {
                 Ok(quote!(str_prefix_of(#part, #text)))
             } else {
@@ -260,10 +359,19 @@ fn lower(expr: &Expr, values: &HashMap<String, Value>) -> syn::Result<TokenStrea
                 return unsupported(expr);
             };
             let index = &value.index;
+            if matches!(value.kind, ValueKind::Result) {
+                return if m.method == "is_ok" {
+                    Ok(quote!((#index).is_ok))
+                } else if m.method == "is_err" {
+                    Ok(quote!(!(#index).is_ok))
+                } else {
+                    unsupported(expr)
+                };
+            }
             let len = match value.kind {
                 ValueKind::Str => quote!(flux_core::str::byte_len(#index)),
                 ValueKind::Slice => quote!(#index),
-                ValueKind::Scalar => return unsupported(expr),
+                ValueKind::Scalar | ValueKind::Result => return unsupported(expr),
             };
             if m.method == "len" {
                 Ok(len)
@@ -287,10 +395,25 @@ fn lower(expr: &Expr, values: &HashMap<String, Value>) -> syn::Result<TokenStrea
                 Ok((scrutinee, pat))
             };
             let (scrutinee, pat) = parser.parse2(m.mac.tokens.clone())?;
-            let scrutinee = lower(&scrutinee, values)?;
+            let scrutinee = lower(&scrutinee, values, old_values)?;
             lower_pattern(&pat, &scrutinee)
         }
         _ => unsupported(expr),
+    }
+}
+
+fn lower_block(
+    block: &syn::Block,
+    values: &HashMap<String, Value>,
+    old_values: Option<&HashMap<String, Value>>,
+) -> syn::Result<TokenStream> {
+    if let [syn::Stmt::Expr(expr, None)] = block.stmts.as_slice() {
+        lower(expr, values, old_values)
+    } else {
+        Err(syn::Error::new(
+            block.span(),
+            "contract branches must contain a single pure expression",
+        ))
     }
 }
 
@@ -400,6 +523,75 @@ mod tests {
                 quote!(xs == ys),
                 quote!(
                     fn f(xs: &[u8], ys: &[u8]) {}
+                )
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_old_and_effectful_branches() {
+        for expr in [
+            quote!(old(result) == 0),
+            quote!(old(old(value)) == value),
+            quote!(old() == 0),
+            quote!(old(value, value) == 0),
+            quote!(
+                if value > 0 {
+                    let x = value;
+                    x
+                } else {
+                    0
+                } == value
+            ),
+        ] {
+            assert!(
+                expand(
+                    "ensures",
+                    expr,
+                    quote!(
+                        fn f(value: u32) -> u32 {
+                            value
+                        }
+                    )
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            expand(
+                "requires",
+                quote!(old(value) > 0),
+                quote!(
+                    fn f(value: u32) {}
+                )
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn result_equality_must_not_turn_into_discriminant_equality() {
+        assert!(
+            expand(
+                "ensures",
+                quote!(result == input),
+                quote!(
+                    fn f(input: Result<u32, u32>) -> Result<u32, u32> {
+                        input
+                    }
+                )
+            )
+            .is_err()
+        );
+        assert!(
+            expand(
+                "ensures",
+                quote!(result == input),
+                quote!(
+                    fn f(input: Vec<u8>) -> Vec<u8> {
+                        input
+                    }
                 )
             )
             .is_err()

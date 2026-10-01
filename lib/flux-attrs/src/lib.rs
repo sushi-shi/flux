@@ -7,8 +7,12 @@ use proc_macro::TokenStream;
 /// A precondition written with parameter names and Rust-shaped expressions.
 ///
 /// Stack with [`ensures`] in either order. The current frontend supports scalar
-/// parameters, reflected payload-free enums, immutable strings and slices;
+/// parameters, refined structs, reflected payload-free enums, strings, slices,
+/// and default-allocator `Vec<T>` lengths;
 /// `len`, `is_empty`, string `starts_with`/`ends_with`, and enum `matches!` patterns.
+/// Shared and mutable receivers/parameters are supported, as are pure `if/else`
+/// expressions. Standard `Result<T, E>` supports `is_ok()` and `is_err()`;
+/// its payload is not modeled. Result and Vec lowering currently require `std`.
 /// Arithmetic denotes mathematical integers, as in Flux refinement signatures;
 /// it does not execute Rust arithmetic or wrap at machine bounds. Division and
 /// remainder currently require a positive integer literal divisor.
@@ -25,7 +29,11 @@ pub fn requires(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 
 /// A postcondition; `result` refers to the function's returned value.
 ///
-/// Parameters refer to their entry values. Unit-returning lemmas may establish
+/// Mutable-reference parameters refer to their state on return; `old(expr)`
+/// refers to entry state. Other parameters retain their entry values. State
+/// preservation must be specified explicitly: omitted fields are not assumed
+/// unchanged. `old` cannot be nested or used in a precondition, and cannot refer
+/// to `result`. Unit-returning lemmas may establish
 /// facts about their parameters without mentioning `result`. The lemma body is
 /// checked normally; this attribute never makes the function trusted.
 #[proc_macro_attribute]
