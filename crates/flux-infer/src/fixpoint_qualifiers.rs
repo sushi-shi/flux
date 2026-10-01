@@ -6,7 +6,7 @@ use crate::fixpoint_encoding::fixpoint::{
     LocalVar, Var,
     fixpoint_generated::{Expr, QualParam, Qualifier},
 };
-pub(crate) static FIXPOINT_QUALIFIERS: LazyLock<[Qualifier; 13]> = LazyLock::new(|| {
+pub(crate) static FIXPOINT_QUALIFIERS: LazyLock<[Qualifier; 14]> = LazyLock::new(|| {
     // UNARY
     let eqtrue = Qualifier {
         name: String::from("EqTrue"),
@@ -148,5 +148,22 @@ pub(crate) static FIXPOINT_QUALIFIERS: LazyLock<[Qualifier; 13]> = LazyLock::new
             ]),
         ),
     };
-    [eqtrue, eqfalse, eqzero, gtzero, gezero, ltzero, lezero, eq, gt, ge, lt, le, le1]
+    // Preserve string identity across control-flow joins, including the source
+    // text carried by a UTF-8 iterator. This is a candidate invariant to prove,
+    // not an assumption that arbitrary strings are equal.
+    let str_eq = Qualifier {
+        name: String::from("StrEq"),
+        args: vec![
+            QualParam::new(Var::Local(LocalVar::from(0u32)), Sort::Str),
+            QualParam::new(Var::Local(LocalVar::from(1u32)), Sort::Str),
+        ],
+        body: Expr::Atom(
+            BinRel::Eq,
+            Box::new([
+                Expr::Var(Var::Local(LocalVar::from(0u32))),
+                Expr::Var(Var::Local(LocalVar::from(1u32))),
+            ]),
+        ),
+    };
+    [eqtrue, eqfalse, eqzero, gtzero, gezero, ltzero, lezero, eq, gt, ge, lt, le, le1, str_eq]
 });
