@@ -9,5 +9,14 @@ use flux_attrs::*;
 ///
 /// https://github.com/rust-lang/rust/blob/a8a1e6fd9df2e094d6f09c0d57991508680acc1c/library/alloc/src/boxed.rs#L266
 #[extern_spec(alloc::boxed)]
+#[no_panic]
 #[spec(fn(Box<MaybeUninit<[T; N]>>) -> Vec<T>[N])]
 fn box_assume_init_into_vec_unsafe<T, const N: usize>(b: Box<MaybeUninit<[T; N]>>) -> Vec<T>;
+
+// A sized Rust type already has a valid layout; Global allocation failure
+// aborts. This constructor neither initializes T nor calls user code.
+#[extern_spec(alloc::boxed)]
+impl<T> Box<T> {
+    #[no_panic]
+    fn new_uninit() -> Box<MaybeUninit<T>>;
+}

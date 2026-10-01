@@ -158,11 +158,17 @@ program panics".
    checked, and unsupported expressions fail explicitly. Slice equality is rejected because the
    current slice model tracks length, not contents. Named field projections are supported when
    the aggregate's refinement fields use the same names and are tied to its Rust fields.
-   Native builds erase the attributes.
+   Mutable receivers/parameters, `old(expr)`, pure `if/else`, standard Result discriminants,
+   and Vec lengths are supported. Preservation of mutable fields must be stated explicitly.
+   `#[refined]` now infers a nongeneric named struct's refinement record and field connections
+   from scalar, named refined, Vec, and BTreeMap fields. Container equality compares the
+   modeled properties only, not complete Rust contents. Native builds erase the attributes.
    Codex uses the macros through `flux_core` under `cfg_attr(flux, ...)`; removing those wrappers
    still needs ordinary-build dependency integration. Payload bindings/guards, nested patterns,
-   indexing definedness, generic/async functions, method receivers, const-fn
+   indexing definedness, generic/async functions, const-fn
    reflection and dedicated proof blocks remain open. Do not treat this first subset as completion
    of the syntax examples in SPECIFICATION.md.
+   The relay buffer case uses a weighted BTreeMap model to connect its byte counter to stored
+   Vec lengths. See [collection model audit](COLLECTION-MODELS.md) for assumptions and limits.
 8. **Performance.** Keep one solver process running instead of starting one per function. Measure
    `-Fcache` (per-function query cache) and parallel checking of functions.

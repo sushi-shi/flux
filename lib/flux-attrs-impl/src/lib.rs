@@ -1,6 +1,11 @@
 mod ast;
 mod contracts;
 mod extern_spec;
+mod refined;
+
+pub fn refined(attr: TokenStream, item: TokenStream) -> TokenStream {
+    refined::expand(attr, item).unwrap_or_else(|err| err.to_compile_error())
+}
 
 pub fn contract(name: &str, attr: TokenStream, item: TokenStream) -> TokenStream {
     contracts::expand(name, attr, item).unwrap_or_else(|err| err.to_compile_error())

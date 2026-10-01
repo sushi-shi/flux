@@ -4,6 +4,27 @@ use attr_dummy as attr_impl;
 use attr_sysroot as attr_impl;
 use proc_macro::TokenStream;
 
+/// Infer a named struct's refinement record and field connections from its Rust types.
+///
+/// Supports nongeneric structs with scalar fields, named refined types, and
+/// standard default-allocator Vec and BTreeMap models (requires std).
+/// Invariants use the field names. Container models describe only their modeled
+/// properties, not full contents; equality of models is not content equality.
+/// Unsupported field types are errors during verification. Native builds erase
+/// the attribute and preserve the original struct and its layout.
+#[proc_macro_attribute]
+pub fn refined(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    #[cfg(flux_sysroot)]
+    {
+        flux_attrs_impl::refined(attr.into(), tokens.into()).into()
+    }
+    #[cfg(not(flux_sysroot))]
+    {
+        let _ = attr;
+        tokens
+    }
+}
+
 /// A precondition written with parameter names and Rust-shaped expressions.
 ///
 /// Stack with [`ensures`] in either order. The current frontend supports scalar
