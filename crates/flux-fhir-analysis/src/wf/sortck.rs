@@ -720,7 +720,7 @@ impl<'genv> InferCtxt<'genv, '_> {
                 }
             }
             (rty::Sort::Func(f1), rty::Sort::Func(f2))
-                if f1.params().is_empty() && f2.params().is_empty() =>
+                if f1.params().len() == 0 && f2.params().len() == 0 =>
             {
                 let f1 = f1.expect_mono();
                 let f2 = f2.expect_mono();
