@@ -11,6 +11,22 @@ pub fn contract(name: &str, attr: TokenStream, item: TokenStream) -> TokenStream
     contracts::expand(name, attr, item).unwrap_or_else(|err| err.to_compile_error())
 }
 
+pub fn may_panic(item: TokenStream) -> TokenStream {
+    let parsed = match syn::parse2::<syn::ItemFn>(item.clone()) {
+        Ok(item) => item,
+        Err(err) => return err.to_compile_error(),
+    };
+    let has_contract = parsed.attrs.iter().any(|attr| {
+        attr.path().segments.last().is_some_and(|s| {
+            ["sig", "spec", "requires", "ensures"]
+                .iter()
+                .any(|name| s.ident == *name)
+        })
+    });
+    let item = if has_contract { item } else { contract("ensures", quote!(true), item) };
+    quote!(#[flux_tool::no_panic_if(false)] #item)
+}
+
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, format_ident, quote, quote_spanned};
 use syn::{

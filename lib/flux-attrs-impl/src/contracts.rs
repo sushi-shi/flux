@@ -3,12 +3,13 @@
 
 use std::collections::HashMap;
 
-use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote};
+use proc_macro2::{Ident, TokenStream, TokenTree};
+use quote::{ToTokens, format_ident, quote};
 use syn::{Expr, FnArg, ItemFn, Pat, ReturnType, Type, spanned::Spanned};
 
 #[derive(Clone, Copy)]
 enum ValueKind {
+    Opaque,
     Scalar,
     Str,
     Slice,
@@ -21,12 +22,22 @@ struct Value {
     kind: ValueKind,
 }
 
+fn mentions(tokens: TokenStream, name: &Ident) -> bool {
+    tokens.into_iter().any(|token| {
+        match token {
+            TokenTree::Ident(ident) => ident == *name,
+            TokenTree::Group(group) => mentions(group.stream(), name),
+            _ => false,
+        }
+    })
+}
+
 pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
     let mut item: ItemFn = syn::parse2(item)?;
-    if item.sig.asyncness.is_some() || !item.sig.generics.params.is_empty() {
+    if item.sig.asyncness.is_some() {
         return Err(syn::Error::new(
             item.sig.span(),
-            "readable contracts do not yet support async or generic functions",
+            "readable contracts do not yet support async functions",
         ));
     }
     let mut requires = Vec::new();
@@ -90,11 +101,8 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
                 (pat.ident.clone(), &*input.ty)
             }
             FnArg::Receiver(receiver) => {
-                if receiver.colon_token.is_some() || receiver.reference.is_none() {
-                    return Err(syn::Error::new(
-                        receiver.span(),
-                        "use an &self or &mut self receiver",
-                    ));
+                if receiver.colon_token.is_some() {
+                    return Err(syn::Error::new(receiver.span(), "use self, &self, or &mut self"));
                 }
                 (Ident::new("self", receiver.self_token.span), &*receiver.ty)
             }
@@ -110,6 +118,15 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
             after_values.insert(name.to_string(), Value { index: after_index, kind });
             frames.push(quote!(#name: #after));
             (quote!(#name: &strg #before), kind)
+        } else if !requires
+            .iter()
+            .chain(&ensures)
+            .any(|expr| mentions(expr.to_token_stream(), &name))
+        {
+            // A parameter absent from the contract needs no refinement binder.
+            // In particular, generic payloads can stay opaque instead of being
+            // incorrectly treated as base-sort parameters.
+            (quote!(#name: #ty), ValueKind::Opaque)
         } else {
             let (ty, kind) = indexed_type(ty, &index, true)?;
             (quote!(#name: #ty), kind)
@@ -125,6 +142,14 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
         ReturnType::Type(_, ty) if matches!(&**ty, Type::Tuple(t) if t.elems.is_empty()) => {
             quote!()
         }
+        ReturnType::Type(_, ty)
+            if !ensures
+                .iter()
+                .any(|expr| mentions(expr.to_token_stream(), &Ident::new("result", ty.span()))) =>
+        {
+            // Unmentioned generic return values need no refinement binder.
+            quote!(-> #ty)
+        }
         ReturnType::Type(_, ty) => {
             let index = format_ident!("__flux_contract_result", span = ty.span());
             let (ty, kind) = indexed_type(ty, &index, false)?;
@@ -133,10 +158,84 @@ pub fn expand(name: &str, attr: TokenStream, item: TokenStream) -> syn::Result<T
         }
     };
     let post = conjunction(&ensures, &values, Some(&old_values))?;
+    check_vec_field_types(&mut item, requires.iter().chain(&ensures))?;
     Ok(quote! {
         #[flux_tool::sig(fn(#(#inputs),*) #output requires #pre ensures #(#frames,)* #post)]
         #item
     })
+}
+
+// Logical single-field records can coerce through their scalar index. A typed
+// logical Vec projection alone therefore cannot establish that a Rust receiver
+// is actually Vec. Ask rustc to check that fact in a dead block; the sealed local
+// marker also prevents Deref coercions from accepting a custom len method.
+fn check_vec_field_types<'a>(
+    item: &mut ItemFn,
+    exprs: impl Iterator<Item = &'a Expr>,
+) -> syn::Result<()> {
+    use syn::visit_mut::{self, VisitMut};
+    #[derive(Default)]
+    struct Fields(Vec<Expr>);
+    impl VisitMut for Fields {
+        fn visit_expr_method_call_mut(&mut self, call: &mut syn::ExprMethodCall) {
+            if call.args.is_empty()
+                && call.turbofish.is_none()
+                && (call.method == "len" || call.method == "is_empty")
+                && matches!(&*call.receiver, Expr::Field(_))
+            {
+                self.0.push((*call.receiver).clone());
+            }
+            visit_mut::visit_expr_method_call_mut(self, call);
+        }
+    }
+    struct StripOld;
+    impl VisitMut for StripOld {
+        fn visit_expr_mut(&mut self, expr: &mut Expr) {
+            if let Expr::Call(call) = expr
+                && matches!(&*call.func, Expr::Path(p) if p.path.is_ident("old"))
+                && call.args.len() == 1
+            {
+                *expr = call.args[0].clone();
+            }
+            visit_mut::visit_expr_mut(self, expr);
+        }
+    }
+    let mut fields = Fields::default();
+    for expr in exprs {
+        fields.visit_expr_mut(&mut expr.clone());
+    }
+    if fields.0.is_empty() {
+        return Ok(());
+    }
+    let mut params = Vec::new();
+    let mut results = Vec::new();
+    for mut receiver in fields.0 {
+        StripOld.visit_expr_mut(&mut receiver);
+        let check = quote!(__flux_check_vec_field_type(&#receiver););
+        if mentions(receiver.to_token_stream(), &Ident::new("result", receiver.span())) {
+            results.push(check);
+        } else {
+            params.push(check);
+        }
+    }
+    let result_check = if results.is_empty() {
+        quote!()
+    } else {
+        let ReturnType::Type(_, ty) = &item.sig.output else { unreachable!() };
+        quote!(let _ = |result: #ty| { #(#results)* };)
+    };
+    let check = syn::parse2::<syn::Stmt>(quote! {
+        #[allow(dead_code, unused_variables, unreachable_code)]
+        if false {
+            trait __FluxVecFieldType {}
+            impl<T> __FluxVecFieldType for std::vec::Vec<T> {}
+            const fn __flux_check_vec_field_type<T: __FluxVecFieldType>(_: &T) {}
+            #(#params)*
+            #result_check
+        }
+    })?;
+    item.block.stmts.insert(0, check);
+    Ok(())
 }
 
 fn indexed_type(ty: &Type, index: &Ident, input: bool) -> syn::Result<(TokenStream, ValueKind)> {
@@ -160,9 +259,7 @@ fn indexed_type(ty: &Type, index: &Ident, input: bool) -> syn::Result<(TokenStre
             let args = &p.path.segments.last().unwrap().arguments;
             Ok((quote!(std::vec::Vec #args [#binder]), ValueKind::Slice))
         }
-        Type::Path(p)
-            if p.qself.is_none() && p.path.segments.iter().all(|s| s.arguments.is_empty()) =>
-        {
+        Type::Path(p) if p.qself.is_none() => {
             let kind = if p.path.is_ident("str") { ValueKind::Str } else { ValueKind::Scalar };
             Ok((quote!(#ty[#binder]), kind))
         }
@@ -221,7 +318,10 @@ fn lower(
         Expr::Path(p) => {
             if let Some(name) = p.path.get_ident() {
                 if let Some(value) = values.get(&name.to_string()) {
-                    if matches!(value.kind, ValueKind::Slice | ValueKind::Result) {
+                    if matches!(
+                        value.kind,
+                        ValueKind::Slice | ValueKind::Result | ValueKind::Opaque
+                    ) {
                         return Err(syn::Error::new(
                             p.span(),
                             "contents are not modeled; use slice length or Result discriminant methods explicitly",
@@ -354,6 +454,13 @@ fn lower(
             }
         }
         Expr::MethodCall(m) if m.args.is_empty() && m.turbofish.is_none() => {
+            if matches!(&*m.receiver, Expr::Field(_))
+                && (m.method == "len" || m.method == "is_empty")
+            {
+                let receiver = lower(&m.receiver, values, old_values)?;
+                let len = quote!(flux_alloc::vec::model_len(#receiver));
+                return if m.method == "len" { Ok(len) } else { Ok(quote!((#len) == 0)) };
+            }
             let Expr::Path(p) = &*m.receiver else { return unsupported(expr) };
             let Some(value) = p.path.get_ident().and_then(|i| values.get(&i.to_string())) else {
                 return unsupported(expr);
@@ -371,7 +478,9 @@ fn lower(
             let len = match value.kind {
                 ValueKind::Str => quote!(flux_core::str::byte_len(#index)),
                 ValueKind::Slice => quote!(#index),
-                ValueKind::Scalar | ValueKind::Result => return unsupported(expr),
+                ValueKind::Scalar | ValueKind::Result | ValueKind::Opaque => {
+                    return unsupported(expr);
+                }
             };
             if m.method == "len" {
                 Ok(len)

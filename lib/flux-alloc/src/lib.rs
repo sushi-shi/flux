@@ -1,7 +1,7 @@
 // #![no_std]
 #![cfg_attr(doc, deny(rustdoc::broken_intra_doc_links))]
 #![cfg_attr(flux, allow(internal_features))]
-#![cfg_attr(flux, feature(allocator_api, liballoc_internals, specialization))]
+#![cfg_attr(flux, feature(allocator_api, liballoc_internals, specialization, drain_keep_rest))]
 #![cfg_attr(flux, allow(incomplete_features))]
 #![cfg_attr(flux, flux::no_suggestions)]
 

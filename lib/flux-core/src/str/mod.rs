@@ -47,3 +47,4 @@ impl char {
 
 mod index;
 mod iter;
+mod utf8;

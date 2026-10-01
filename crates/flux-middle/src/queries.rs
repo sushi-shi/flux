@@ -1047,7 +1047,7 @@ impl<'genv, 'tcx> Queries<'genv, 'tcx> {
         def_id: DefId,
     ) -> QueryResult<rty::EarlyBinder<rty::PolyFnSig>> {
         run_with_cache(&self.fn_sig, def_id, || {
-            def_id.dispatch_query(
+            let signature = def_id.dispatch_query(
                 genv,
                 self,
                 |def_id| (self.providers.fn_sig)(genv, def_id),
@@ -1099,7 +1099,19 @@ impl<'genv, 'tcx> Queries<'genv, 'tcx> {
                     }
                     Ok(rty::EarlyBinder(poly_sig))
                 },
-            )
+            )?;
+            // Normal-return contracts do not describe state after a caught
+            // unwind. Keep this boundary closed even with std models disabled,
+            // including when the function item is coerced to a function pointer.
+            // AssertUnwindSafe is a Rust marker, not a proof of refinement invariants.
+            if genv.tcx().def_path_str(def_id) == "std::panic::catch_unwind" {
+                Ok(rty::EarlyBinder(signature.skip_binder().map(|mut sig| {
+                    sig.requires = vec![Expr::ff()].into();
+                    sig
+                })))
+            } else {
+                Ok(signature)
+            }
         })
     }
 }
