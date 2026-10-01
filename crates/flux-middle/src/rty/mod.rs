@@ -139,8 +139,11 @@ struct AdtSortDefData {
     /// See [`fhir::RefinedBy::sort_params`] for more details. This is a version of that but using
     /// [`ParamTy`] instead of [`DefId`].
     ///
-    /// The length of this list corresponds to the number of sort variables bound by this definition.
+    /// These precede the associated value sorts in the definition's sort parameters.
     params: Vec<ParamTy>,
+    /// Associated value sorts used by fields. Each becomes an additional
+    /// sort parameter, instantiated from the ADT's actual Rust type arguments.
+    projections: Vec<AliasTy>,
     /// A vec of variants of the ADT;
     /// - a `struct` sort -- used for types with a `refined_by` has a single variant;
     /// - a `reflected` sort -- used for `reflected` enums have multiple variants
@@ -153,11 +156,44 @@ impl AdtSortDef {
     pub fn new(
         def_id: DefId,
         params: Vec<ParamTy>,
-        variants: IndexVec<VariantIdx, AdtSortVariant>,
+        mut variants: IndexVec<VariantIdx, AdtSortVariant>,
         is_reflected: bool,
         is_struct: bool,
     ) -> Self {
-        Self(Interned::new(AdtSortDefData { def_id, params, variants, is_reflected, is_struct }))
+        struct AbstractProjections {
+            offset: usize,
+            projections: Vec<AliasTy>,
+        }
+        impl fold::TypeFolder for AbstractProjections {
+            fn fold_sort(&mut self, sort: &Sort) -> Sort {
+                if let Sort::Alias(alias) = sort {
+                    let index = self
+                        .projections
+                        .iter()
+                        .position(|a| a == alias)
+                        .unwrap_or_else(|| {
+                            self.projections.push(alias.clone());
+                            self.projections.len() - 1
+                        });
+                    Sort::Var(ParamSort::from(self.offset + index))
+                } else {
+                    fold::TypeSuperFoldable::super_fold_with(sort, self)
+                }
+            }
+        }
+        let mut folder = AbstractProjections { offset: params.len(), projections: vec![] };
+        for variant in &mut variants {
+            variant.sorts = variant.sorts.fold_with(&mut folder);
+        }
+        let projections = folder.projections;
+        Self(Interned::new(AdtSortDefData {
+            def_id,
+            params,
+            projections,
+            variants,
+            is_reflected,
+            is_struct,
+        }))
     }
 
     pub fn did(&self) -> DefId {
@@ -191,12 +227,23 @@ impl AdtSortDef {
     }
 
     pub fn to_sort(&self, args: &[GenericArg]) -> Sort {
-        let sorts = self
+        let mut sorts = self
             .filter_generic_args(args)
             .map(|arg| arg.expect_base().sort())
-            .collect();
+            .collect_vec();
+        if self.has_projections() {
+            rustc_middle::ty::tls::with(|tcx| {
+                sorts.extend(self.0.projections.iter().map(|alias| {
+                    Sort::Alias(EarlyBinder(alias.clone()).instantiate(tcx, args, &[]))
+                }));
+            });
+        }
 
-        Sort::App(SortCtor::Adt(self.clone()), sorts)
+        Sort::App(SortCtor::Adt(self.clone()), sorts.into())
+    }
+
+    pub fn has_projections(&self) -> bool {
+        !self.0.projections.is_empty()
     }
 
     /// Given a list of generic args, returns an iterator of the generic arguments that should be
@@ -206,14 +253,14 @@ impl AdtSortDef {
     }
 
     pub fn identity_args(&self) -> List<Sort> {
-        (0..self.0.params.len())
+        (0..self.param_count())
             .map(|i| Sort::Var(ParamSort::from(i)))
             .collect()
     }
 
     /// Gives the number of sort variables bound by this definition.
     pub fn param_count(&self) -> usize {
-        self.0.params.len()
+        self.0.params.len() + self.0.projections.len()
     }
 }
 
@@ -1278,6 +1325,12 @@ impl PolyFuncSort {
     }
 
     pub fn instantiate(&self, args: &[SortArg]) -> FuncSort {
+        // A monomorphic callback inside a polymorphic definition can mention
+        // its enclosing sort parameters. Calling it introduces no substitution
+        // for those free parameters.
+        if self.params.is_empty() {
+            return self.fsort.clone();
+        }
         self.fsort.fold_with(&mut SortSubst::new(args))
     }
 }

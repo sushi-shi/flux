@@ -5,6 +5,8 @@ use flux_middle::{
     PlaceExt as _, def_id_to_string, global_env::GlobalEnv, queries::QueryResult, query_bug, rty,
 };
 use flux_rustc_bridge::{
+    ToRustc,
+    lowering::Lower,
     mir::{
         BasicBlock, Body, BorrowKind, FIRST_VARIANT, FieldIdx, Local, Location,
         NonDivergingIntrinsic, Operand, Place, PlaceElem, PlaceRef, Rvalue, Statement,
@@ -38,12 +40,14 @@ pub(crate) fn add_ghost_statements<'tcx>(
 
 #[derive(Clone)]
 struct Env {
+    owner: DefId,
     map: IndexVec<Local, PlaceNode>,
 }
 
 impl Env {
     fn new(body: &Body) -> Self {
         Self {
+            owner: body.rustc_body().source.def_id(),
             map: body
                 .local_decls
                 .iter()
@@ -64,8 +68,9 @@ impl Env {
     }
 
     fn downcast(&mut self, genv: GlobalEnv, place: &Place, variant_idx: VariantIdx) -> QueryResult {
+        let owner = self.owner;
         let (node, ..) = self.ensure_unfolded(genv, place)?;
-        node.downcast(genv, variant_idx)?;
+        node.downcast(genv, owner, variant_idx)?;
         Ok(())
     }
 
@@ -81,8 +86,8 @@ impl Env {
             let elem = place.projection[i];
             let (n, m) = match elem {
                 PlaceElem::Deref => node.deref(),
-                PlaceElem::Field(f) => node.field(genv, f)?,
-                PlaceElem::Downcast(_, idx) => node.downcast(genv, idx)?,
+                PlaceElem::Field(f) => node.field(genv, self.owner, f)?,
+                PlaceElem::Downcast(_, idx) => node.downcast(genv, self.owner, idx)?,
                 PlaceElem::Index(_) | PlaceElem::ConstantIndex { .. } => break,
             };
             node = n;
@@ -95,7 +100,7 @@ impl Env {
     fn join(&mut self, genv: GlobalEnv, mut other: Env) -> QueryResult<Modified> {
         let mut modified = false;
         for (local, node) in self.map.iter_enumerated_mut() {
-            let (m, _) = node.join(genv, &mut other.map[local], false)?;
+            let (m, _) = node.join(genv, self.owner, &mut other.map[local], false)?;
             modified |= m;
         }
         Ok(modified)
@@ -495,6 +500,7 @@ impl PlaceNode {
     fn downcast(
         &mut self,
         genv: GlobalEnv,
+        owner: DefId,
         idx: VariantIdx,
     ) -> QueryResult<(&mut PlaceNode, Modified)> {
         match self {
@@ -504,7 +510,7 @@ impl PlaceNode {
             }
             PlaceNode::Ty(ty) => {
                 if let TyKind::Adt(adt_def, args) = ty.kind() {
-                    let fields = downcast(genv, adt_def, args, idx)?;
+                    let fields = downcast(genv, owner, adt_def, args, idx)?;
                     *self = PlaceNode::Downcast(adt_def.clone(), args.clone(), idx, fields);
                     Ok((self, true))
                 } else {
@@ -515,17 +521,26 @@ impl PlaceNode {
         }
     }
 
-    fn field(&mut self, genv: GlobalEnv, f: FieldIdx) -> QueryResult<(&mut PlaceNode, Modified)> {
-        let (fields, unfolded) = self.fields(genv)?;
+    fn field(
+        &mut self,
+        genv: GlobalEnv,
+        owner: DefId,
+        f: FieldIdx,
+    ) -> QueryResult<(&mut PlaceNode, Modified)> {
+        let (fields, unfolded) = self.fields(genv, owner)?;
         Ok((&mut fields[f.as_usize()], unfolded))
     }
 
-    fn fields(&mut self, genv: GlobalEnv) -> QueryResult<(&mut Vec<PlaceNode>, bool)> {
+    fn fields(
+        &mut self,
+        genv: GlobalEnv,
+        owner: DefId,
+    ) -> QueryResult<(&mut Vec<PlaceNode>, bool)> {
         match self {
             PlaceNode::Ty(ty) => {
                 let fields = match ty.kind() {
                     TyKind::Adt(adt_def, args) => {
-                        let fields = downcast_struct(genv, adt_def, args)?;
+                        let fields = downcast(genv, owner, adt_def, args, FIRST_VARIANT)?;
                         *self = PlaceNode::Downcast(
                             adt_def.clone(),
                             args.clone(),
@@ -607,6 +622,7 @@ impl PlaceNode {
     fn join(
         &mut self,
         genv: GlobalEnv,
+        owner: DefId,
         other: &mut PlaceNode,
         in_mut_ref: bool,
     ) -> QueryResult<(bool, bool)> {
@@ -616,7 +632,7 @@ impl PlaceNode {
         let (fields1, fields2) = match (&mut *self, &mut *other) {
             (PlaceNode::Deref(ty1, node1), PlaceNode::Deref(ty2, node2)) => {
                 debug_assert_eq!(ty1, ty2);
-                return node1.join(genv, node2, in_mut_ref || ty1.is_mut_ref());
+                return node1.join(genv, owner, node2, in_mut_ref || ty1.is_mut_ref());
             }
             (PlaceNode::Tuple(_, fields1), PlaceNode::Tuple(_, fields2)) => (fields1, fields2),
             (PlaceNode::Closure(.., fields1), PlaceNode::Closure(.., fields2)) => {
@@ -640,7 +656,7 @@ impl PlaceNode {
             }
             (PlaceNode::Ty(_), PlaceNode::Ty(_)) => return Ok((false, false)),
             (PlaceNode::Ty(_), _) => {
-                let (m1, m2) = other.join(genv, self, in_mut_ref)?;
+                let (m1, m2) = other.join(genv, owner, self, in_mut_ref)?;
                 return Ok((m2, m1));
             }
             (PlaceNode::Deref(ty, _), _) => {
@@ -648,19 +664,19 @@ impl PlaceNode {
                 return Ok((true, false));
             }
             (PlaceNode::Tuple(_, fields1), _) => {
-                let (fields2, m) = other.fields(genv)?;
+                let (fields2, m) = other.fields(genv, owner)?;
                 modified2 |= m;
                 (fields1, fields2)
             }
             (PlaceNode::Closure(.., fields1), _) | (PlaceNode::Generator(.., fields1), _) => {
-                let (fields2, m) = other.fields(genv)?;
+                let (fields2, m) = other.fields(genv, owner)?;
                 modified2 |= m;
                 (fields1, fields2)
             }
 
             (PlaceNode::Downcast(adt, args, .., fields1), _) => {
                 if adt.is_struct() && !in_mut_ref {
-                    let (fields2, m) = other.fields(genv)?;
+                    let (fields2, m) = other.fields(genv, owner)?;
                     modified2 |= m;
                     (fields1, fields2)
                 } else {
@@ -670,7 +686,7 @@ impl PlaceNode {
             }
         };
         for (node1, node2) in iter::zip(fields1, fields2) {
-            let (m1, m2) = node1.join(genv, node2, in_mut_ref)?;
+            let (m1, m2) = node1.join(genv, owner, node2, in_mut_ref)?;
             modified1 |= m1;
             modified2 |= m2;
         }
@@ -814,6 +830,7 @@ impl PlaceNode {
 
 fn downcast(
     genv: GlobalEnv,
+    owner: DefId,
     adt_def: &AdtDef,
     args: &GenericArgs,
     variant: VariantIdx,
@@ -824,22 +841,16 @@ fn downcast(
         .iter()
         .map(|field| {
             let ty = genv.lower_type_of(field.did)?.subst(args);
-            QueryResult::Ok(PlaceNode::Ty(ty))
-        })
-        .try_collect()
-}
-
-fn downcast_struct(
-    genv: GlobalEnv,
-    adt_def: &AdtDef,
-    args: &GenericArgs,
-) -> QueryResult<Vec<PlaceNode>> {
-    adt_def
-        .non_enum_variant()
-        .fields
-        .iter()
-        .map(|field| {
-            let ty = genv.lower_type_of(field.did)?.subst(args);
+            let tcx = genv.tcx();
+            // Field projections need the instantiated Rust shape: an
+            // associated field can become a tuple, reference, or another ADT.
+            let ty = tcx
+                .try_normalize_erasing_regions(
+                    rustc_middle::ty::TypingEnv::post_analysis(tcx, owner),
+                    rustc_middle::ty::Unnormalized::new_wip(ty.to_rustc(tcx)),
+                )
+                .map_err(|err| query_bug!("failed to normalize field type: {err:?}"))?;
+            let ty = ty.lower(tcx).map_err(|err| query_bug!("{err:?}"))?;
             QueryResult::Ok(PlaceNode::Ty(ty))
         })
         .try_collect()

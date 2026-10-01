@@ -51,6 +51,7 @@ impl Step for i32 {}
 #[extern_spec(core::ops)]
 #[assoc(
     fn has_size_model() -> bool { <A as Step>::has_size_model() }
+    fn has_fused_model() -> bool { true }
     fn valid_item(self: Range<A>, item: A) -> bool { self.start <= item && item < self.end }
     fn size(self: Range<A>) -> int { <A as Step>::size(self.start, self.end) }
     fn done(self: Range<A>) -> bool { <A as Step>::size(self.start, self.end) <= 0 }

@@ -1,11 +1,12 @@
 use flux_arc_interner::List;
 use flux_common::tracked_span_bug;
+use flux_rustc_bridge::lowering::Lower;
 use rustc_hir::def::DefKind;
 use rustc_span::def_id::DefId;
 
 use crate::{global_env::GlobalEnv, queries::QueryResult, query_bug, rty};
 
-impl GlobalEnv<'_, '_> {
+impl<'genv, 'tcx> GlobalEnv<'genv, 'tcx> {
     pub fn sort_of_self_ty_alias(self, alias_to: DefId) -> QueryResult<Option<rty::Sort>> {
         let self_ty = self
             .tcx()
@@ -26,7 +27,7 @@ impl GlobalEnv<'_, '_> {
     fn sort_of_rust_ty(
         self,
         def_id: DefId,
-        ty: rustc_middle::ty::Ty,
+        ty: rustc_middle::ty::Ty<'tcx>,
     ) -> QueryResult<Option<rty::Sort>> {
         use rustc_middle::ty;
         let sort = match ty.kind() {
@@ -37,6 +38,14 @@ impl GlobalEnv<'_, '_> {
             ty::TyKind::Adt(adt_def, args) => {
                 let mut sort_args = vec![];
                 let sort_def = self.adt_sort_def_of(adt_def.did())?;
+                if sort_def.has_projections() {
+                    let args = args
+                        .lower(self.tcx())
+                        .map_err(|reason| query_bug!("{reason:?}"))?;
+                    let args = rty::refining::Refiner::default_for_item(self, def_id)?
+                        .refine_generic_args(adt_def.did(), &args)?;
+                    return Ok(Some(sort_def.to_sort(&args)));
+                }
                 for arg in sort_def.filter_generic_args(args) {
                     let Some(sort) = self.sort_of_rust_ty(def_id, arg.expect_ty())? else {
                         return Ok(None);

@@ -12,6 +12,9 @@ defs! {
     // Exact remaining-size reasoning requires an explicit model for the impl.
     // In particular, an unrefined iterator must not inherit a decreasing size.
     fn has_size_model() -> bool { false }
+    // With a size model, this capability proves permanent exhaustion. It is
+    // needed to bound every future enumeration index, including after None.
+    fn has_fused_model() -> bool { false }
     // Every future yielded item satisfies this predicate. `next` checks both
     // the returned item and that later states preserve the current guarantee.
     fn valid_item(self: Self, item: Self::Item) -> bool { true }
@@ -30,6 +33,9 @@ trait Iterator {
                         => <Self as Iterator>::valid_item(curr_s, item)
                 },
                 <Self as Iterator>::has_size_model() => <Self as Iterator>::step(curr_s, next_s),
+                (<Self as Iterator>::has_size_model() && <Self as Iterator>::has_fused_model()
+                    && <Self as Iterator>::done(curr_s)) =>
+                    (<Self as Iterator>::done(next_s) && <Self as Iterator>::size(next_s) == 0),
                 <Self as Iterator>::has_size_model() => if <Self as Iterator>::done(curr_s) {
                     <Self as Iterator>::size(curr_s) == 0
                 } else {
@@ -59,6 +65,23 @@ trait Iterator {
     where
         Self: Sized,
         F: FnMut(Self::Item) -> B;
+
+    #[spec(
+        fn[hrn output: B -> bool](Self[@s], F) -> FilterMap<Self, F>[s, |item| output(item)]
+        where F: FnMut(Self::Item{item: <Self as Iterator>::valid_item(s, item)}) -> Option<B{item: output(item)}>
+    )]
+    fn filter_map<B, F>(self, f: F) -> FilterMap<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Item) -> Option<B>;
+
+    // The selected result is a yielded item for any comparator. Ordering
+    // optimality is a separate property; callers here need the item's bounds.
+    #[spec(fn(Self[@s], F) -> Option<Self::Item{item: <Self as Iterator>::valid_item(s, item)}>)]
+    fn min_by<F>(self, compare: F) -> Option<Self::Item>
+    where
+        Self: Sized,
+        F: FnMut(&Self::Item, &Self::Item) -> core::cmp::Ordering;
 
     #[spec(fn(Self[@s], n: usize) -> Skip<Self>[max(0, <Self as Iterator>::size(s) - n)] requires <Self as Iterator>::has_size_model())]
     fn skip(self, n: usize) -> Skip<Self>

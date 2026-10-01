@@ -7,6 +7,7 @@ struct Map<I, F>;
 #[extern_spec(core::iter)]
 #[assoc(
     fn has_size_model() -> bool { <I as Iterator>::has_size_model() }
+    fn has_fused_model() -> bool { <I as Iterator>::has_fused_model() }
     fn size(x: Map<I>) -> int { <I as Iterator>::size(x.inner) }
     fn done(x: Map<I>) -> bool { <I as Iterator>::done(x.inner) }
     fn step(x: Map<I>, y: Map<I>) -> bool { <I as Iterator>::step(x.inner, y.inner) }

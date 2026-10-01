@@ -8,6 +8,10 @@ extern crate flux_core;
 flux_rs::defs! {
     qualifier SzEqA(iter: int, size: int -> int, i: int, iter0: int) { i + size(iter) == size(iter0) }
     qualifier SzEqB(i: int, iter: int, size: int -> int, iter0: int) { i + size(iter) == size(iter0) }
+    // Enumerate's machine counter can wrap; its count plus remaining size
+    // then decreases rather than remaining equal to the initial size.
+    qualifier SzLeA(iter: int, size: int -> int, i: int, iter0: int) { i + size(iter) <= size(iter0) }
+    qualifier SzLeB(i: int, iter: int, size: int -> int, iter0: int) { i + size(iter) <= size(iter0) }
 }
 
 #[trusted(reason = "spec")]

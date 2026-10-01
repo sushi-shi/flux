@@ -22,6 +22,12 @@ use flux_attrs::*;
 
 #[extern_spec]
 impl str {
+    // Searcher matches use UTF-8 byte boundaries, including len() for an
+    // empty match at the end. Predicate patterns may execute user code.
+    #[no_panic_if(<P as Pattern>::literal_string())]
+    #[spec(fn(&str[@s], P) -> Option<usize{offset: boundary(s, offset)}>)]
+    fn find<P: Pattern>(&self, pat: P) -> Option<usize>;
+
     #[no_panic_if(<P as Pattern>::literal_string())]
     #[spec(fn(&str, P) -> bool
         requires <P as Pattern>::literal_string())]

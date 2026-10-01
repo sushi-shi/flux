@@ -231,11 +231,13 @@ impl<'a, 'genv, 'tcx> Normalizer<'a, 'genv, 'tcx> {
         match func.kind() {
             ExprKind::GlobalFunc(SpecFuncKind::Def(did)) if self.should_inline(*did) => {
                 let res = self.func_defn(*did).replace_bound_refts(args);
-                Self::at_base(res, espan)
+                // Substitution can expose a lambda application or projection
+                // that was not reducible in the generic definition.
+                Self::at_base(res.fold_with(self), espan)
             }
             ExprKind::Abs(lam) => {
                 let res = lam.apply(args);
-                Self::at_base(res, espan)
+                Self::at_base(res.fold_with(self), espan)
             }
             _ => Expr::app(func.clone(), sort_args.into(), args.into()).at_opt(espan),
         }

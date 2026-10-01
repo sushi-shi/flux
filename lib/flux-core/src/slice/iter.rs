@@ -14,6 +14,7 @@ impl<'a, T> Iter<'a, T> {
 #[extern_spec(core::slice)]
 #[assoc(
     fn has_size_model() -> bool { true }
+    fn has_fused_model() -> bool { true }
     fn size(x: Iter) -> int { x.len - x.idx }
     fn done(x: Iter) -> bool { x.idx >= x.len }
     fn step(x: Iter, y: Iter) -> bool {
