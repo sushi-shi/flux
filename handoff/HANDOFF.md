@@ -156,10 +156,12 @@ program panics".
    payload-free `matches!` alternatives on reflected enums. Arithmetic uses mathematical integers;
    division/remainder currently require a positive literal divisor. Stacked conditions are all
    checked, and unsupported expressions fail explicitly. Slice equality is rejected because the
-   current slice model tracks length, not contents. Native builds erase the attributes.
+   current slice model tracks length, not contents. Named field projections are supported when
+   the aggregate's refinement fields use the same names and are tied to its Rust fields.
+   Native builds erase the attributes.
    Codex uses the macros through `flux_core` under `cfg_attr(flux, ...)`; removing those wrappers
    still needs ordinary-build dependency integration. Payload bindings/guards, nested patterns,
-   indexing definedness, generic/async functions, method receivers, field projections, const-fn
+   indexing definedness, generic/async functions, method receivers, const-fn
    reflection and dedicated proof blocks remain open. Do not treat this first subset as completion
    of the syntax examples in SPECIFICATION.md.
 8. **Performance.** Keep one solver process running instead of starting one per function. Measure
