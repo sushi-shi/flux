@@ -1,5 +1,9 @@
 # Handoff: agent-oriented refinement types on Flux
 
+**Latest resume checkpoint:** [CURRENT.md](CURRENT.md). The dated material below
+records the initial experiment; use the current checkpoint for present branches,
+validation, remaining obligations and rebuild instructions.
+
 State as of 2026-09-30. This directory lives on branch `handoff` of `sushi-shi/flux`, stacked on
 `fix/iter-adapter-soundness` (PR #1). Everything needed to reproduce the results below is in here.
 

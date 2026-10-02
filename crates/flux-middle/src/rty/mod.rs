@@ -1594,7 +1594,8 @@ impl Ty {
     }
 
     pub fn indexed(bty: BaseTy, idx: impl Into<Expr>) -> Ty {
-        TyKind::Indexed(bty, idx.into()).intern()
+        let idx = idx.into();
+        TyKind::Indexed(bty.link_shared_referent(&idx), idx).intern()
     }
 
     pub fn exists(ty: Binder<Ty>) -> Ty {
@@ -1658,6 +1659,11 @@ impl Ty {
     }
 
     pub fn mk_ref(region: Region, ty: Ty, mutbl: Mutability) -> Ty {
+        if mutbl == Mutability::Not
+            && let Some(value) = ty.index_expr()
+        {
+            return Ty::indexed(BaseTy::Ref(region, ty, mutbl), value);
+        }
         BaseTy::Ref(region, ty, mutbl).to_ty()
     }
 
@@ -1953,6 +1959,27 @@ pub enum BaseTy {
 }
 
 impl BaseTy {
+    // Shared references and their referents denote the same logical value.
+    // Normalize this relation at both type and generic-constructor creation,
+    // before inference holes can capture two independent value binders.
+    fn link_shared_referent(self, value: &Expr) -> Self {
+        if let BaseTy::Ref(region, referent, Mutability::Not) = &self
+            && let TyKind::Exists(inner) = referent.kind()
+            && inner.vars().len() == 1
+        {
+            let mut body = inner.skip_binder_ref();
+            while let TyKind::Constr(_, ty) = body.kind() {
+                body = ty;
+            }
+            if let TyKind::Indexed(_, idx) = body.kind()
+                && idx.is_nu()
+            {
+                return BaseTy::Ref(*region, inner.replace_bound_reft(value), Mutability::Not);
+            }
+        }
+        self
+    }
+
     pub fn adt(adt_def: AdtDef, args: GenericArgs) -> BaseTy {
         BaseTy::Adt(adt_def, args)
     }
@@ -2478,7 +2505,8 @@ pub struct SubsetTy {
 
 impl SubsetTy {
     pub fn new(bty: BaseTy, idx: impl Into<Expr>, pred: impl Into<Expr>) -> Self {
-        Self { bty, idx: idx.into(), pred: pred.into() }
+        let idx = idx.into();
+        Self { bty: bty.link_shared_referent(&idx), idx, pred: pred.into() }
     }
 
     pub fn trivial(bty: BaseTy, idx: impl Into<Expr>) -> Self {

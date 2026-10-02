@@ -537,8 +537,10 @@ impl<'genv, 'tcx> Zipper<'genv, 'tcx> {
         impl Adjuster<'_, '_, '_> {
             fn adjust(&self, debruijn: DebruijnIndex) -> DebruijnIndex {
                 let b_binders = self.zipper.b_binder_to_a_binder.len();
-                let mapped_binder = self.zipper.b_binder_to_a_binder
-                    [b_binders - debruijn.as_usize() - 1]
+                // Binders inside the value being adjusted are unchanged. The
+                // zipper's mapping starts outside those local binders.
+                let outer_index = debruijn.as_usize() - self.current_index.as_usize();
+                let mapped_binder = self.zipper.b_binder_to_a_binder[b_binders - outer_index - 1]
                     .unwrap_or_else(|| {
                         bug!("bound var without corresponding binder: `{debruijn:?}`")
                     });

@@ -56,6 +56,33 @@ impl String {
             && flux_core::str::byte_len(after) == flux_core::str::byte_len(before)
                 + flux_core::str::byte_len(text)})]
     fn push_str(&mut self, string: &str);
+
+    // Pinned alloc/src/string.rs removes the range in Drain::drop. Leaking
+    // the iterator leaves the original string; consuming it, even partly,
+    // then dropping it removes the whole prefix. Both outcomes must be
+    // admitted until the checker tracks destructor effects on the owner.
+    #[no_panic_if(<R as core::ops::RangeBounds<usize>>::modeled_prefix())]
+    #[spec(fn(self: &mut String[@before], R[@range]) -> alloc::string::Drain
+        requires <R as core::ops::RangeBounds<usize>>::modeled_prefix()
+            && flux_core::str::boundary(before,
+                <R as core::ops::RangeBounds<usize>>::prefix_end(range))
+        ensures self: String{after: after == before || (
+            str_suffix_of(after, before)
+            && flux_core::str::byte_len(after) == flux_core::str::byte_len(before)
+                - <R as core::ops::RangeBounds<usize>>::prefix_end(range))})]
+    fn drain<R: core::ops::RangeBounds<usize>>(&mut self, range: R) -> alloc::string::Drain<'_>;
+}
+
+// String delegates indexing to the same sealed SliceIndex<str> operations
+// as str. Keeping both the boundary requirement and output relation lets
+// callers use the sliced text without a separate hand-written summary.
+#[extern_spec]
+impl<I: core::slice::SliceIndex<str>> core::ops::Index<I> for String {
+    #[no_panic]
+    #[spec(fn(&String[@text], {I[@idx] |
+        <I as core::slice::SliceIndex<str>>::in_bounds(idx, text)})
+        -> &I::Output{out: <I as core::slice::SliceIndex<str>>::output_pred(idx, text, out)})]
+    fn index(&self, index: I) -> &I::Output;
 }
 
 #[extern_spec]

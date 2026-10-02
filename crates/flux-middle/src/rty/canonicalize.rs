@@ -147,6 +147,46 @@ impl<D: HoisterDelegate> Hoister<D> {
         ty.fold_with(self)
     }
 
+    // A shared reference and its referent have the same value. Reuse the
+    // referent's index instead of inventing an equal but syntactically fresh
+    // one: loop joins should recognize an unchanged borrowed collection.
+    fn hoist_shared_ref_exists(&mut self, ctor: &TyCtor) -> Option<Ty> {
+        if ctor.vars().len() != 1 {
+            return None;
+        }
+        let mut body = ctor.skip_binder_ref();
+        while let TyKind::Constr(_, ty) = body.kind() {
+            body = ty;
+        }
+        let TyKind::Indexed(BaseTy::Ref(region, referent, Mutability::Not), idx) = body.kind()
+        else {
+            return None;
+        };
+        if !idx.is_nu() || !(self.in_shr_refs || (self.slices && is_indexed_slice(referent))) {
+            return None;
+        }
+        let mut dependent = false;
+        let (region, referent) = ctor.rebind((*region, referent.clone())).replace_bound_vars(
+            |_| unreachable!("reference index binder contains a region"),
+            |_, _, _| {
+                dependent = true;
+                Expr::unit()
+            },
+        );
+        if dependent {
+            return None;
+        }
+        let referent = referent.fold_with(self);
+        let value = referent.index_expr()?;
+        let instantiated = ctor.replace_bound_reft(&value);
+        let mut body = &instantiated;
+        while let TyKind::Constr(pred, ty) = body.kind() {
+            self.delegate.hoist_constr(pred.clone());
+            body = ty;
+        }
+        Some(Ty::indexed(BaseTy::Ref(region, referent, Mutability::Not), value))
+    }
+
     // A tuple's value is determined by its fields. Eliminate a redundant
     // existential for that value before introducing fresh logical variables.
     fn hoist_tuple_exists(&mut self, ctor: &TyCtor) -> Option<Ty> {
@@ -210,6 +250,18 @@ fn is_indexed_slice(ty: &Ty) -> bool {
 impl<D: HoisterDelegate> TypeFolder for Hoister<D> {
     fn fold_ty(&mut self, ty: &Ty) -> Ty {
         match ty.kind() {
+            TyKind::Indexed(BaseTy::Ref(region, referent, Mutability::Not), idx) => {
+                let bty = BaseTy::Ref(*region, referent.clone(), Mutability::Not).fold_with(self);
+                // Connect a generic reference index to the value available
+                // after dereferencing; independent existential indices would
+                // otherwise lose which referent was passed to the callee.
+                if let BaseTy::Ref(_, referent, _) = &bty
+                    && let Some(value) = referent.index_expr()
+                {
+                    self.delegate.hoist_constr(Expr::eq(value, idx.clone()));
+                }
+                Ty::indexed(bty, idx.clone())
+            }
             TyKind::Indexed(BaseTy::Tuple(fields), idx) if self.in_tuples => {
                 let fields = fields.fold_with(self);
                 for (field, ty) in fields.iter().enumerate() {
@@ -224,6 +276,9 @@ impl<D: HoisterDelegate> TypeFolder for Hoister<D> {
             }
             TyKind::Indexed(bty, idx) => Ty::indexed(bty.fold_with(self), idx.clone()),
             TyKind::Exists(ty_ctor) if self.existentials => {
+                if let Some(ty) = self.hoist_shared_ref_exists(ty_ctor) {
+                    return ty;
+                }
                 if let Some(ty) = self.hoist_tuple_exists(ty_ctor) {
                     return ty;
                 }

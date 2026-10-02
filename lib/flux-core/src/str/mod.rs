@@ -26,12 +26,13 @@ impl str {
     // empty match at the end. Valid str slices fit within isize::MAX bytes.
     // Predicate patterns may execute user code.
     #[no_panic_if(<P as Pattern>::literal_string())]
-    #[spec(fn(&str[@s], P) -> Option<usize{offset:
-        boundary(s, offset) && offset <= isize::MAX}>)]
+    #[spec(fn(&str[@s], P[@p]) -> Option<usize{offset:
+        boundary(s, offset) && offset <= isize::MAX
+            && <P as Pattern>::match_end(p, s, offset)}>)]
     fn find<P: Pattern>(&self, pat: P) -> Option<usize>;
 
     #[no_panic_if(<P as Pattern>::literal_string())]
-    #[spec(fn(&str, P) -> bool
+    #[spec(fn(&str[@s], P[@p]) -> bool{found: <P as Pattern>::suffix_result(p, s, found)}
         requires <P as Pattern>::literal_string())]
     fn ends_with<P: Pattern>(&self, pat: P) -> bool
     where
